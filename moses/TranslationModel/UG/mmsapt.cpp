@@ -168,6 +168,9 @@ namespace Moses
     dflt = pair<string,string> ("lexalpha","0");
     m_lex_alpha = atof(param.insert(dflt).first->second.c_str());
 
+    dflt = pair<string,string> ("lexfade","0");
+    m_lex_alpha = atof(param.insert(dflt).first->second.c_str());
+
     dflt = pair<string,string> ("sample","1000");
     m_default_sample_size = atoi(param.insert(dflt).first->second.c_str());
 
@@ -257,6 +260,7 @@ namespace Moses
     known_parameters.push_back("feature-sets");
     known_parameters.push_back("input-factor");
     known_parameters.push_back("lexalpha");
+    known_parameters.push_back("lexfade");
     // known_parameters.push_back("limit"); // replaced by "table-limit"
     known_parameters.push_back("logcnt");
     known_parameters.push_back("lr-func"); // associated lexical reordering function
@@ -401,7 +405,7 @@ namespace Moses
 	    // lexical scores
 	    string lexfile = m_bname + L1 + "-" + L2 + ".lex";
 	    sptr<PScoreLex1<Token> >
-	      ff(new PScoreLex1<Token>(param["lex_alpha"],lexfile));
+	      ff(new PScoreLex1<Token>(param["lexalpha"], param["lexfade"], lexfile));
 	    register_ff(ff,m_active_ff_common);
 
 	    // these are always computed on pooled data

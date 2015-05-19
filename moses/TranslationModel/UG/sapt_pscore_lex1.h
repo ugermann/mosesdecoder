@@ -14,11 +14,20 @@ namespace Moses {
     PScoreLex1 : public PhraseScorer<Token>
     {
       float    m_alpha;
+      float     m_fade; 
+      // fade: take the 1 + (fade * (j-th-1) root of the lexical scores
+      //       The purpose of this is to reduce the influence of lexical 
+      //       scoring on word translations that are different from usual
+      //       in a specific context. E.g.: 
+      //       pig in a poke: not: Schwein im stubsen (German)
+      //                      but: Katze im Sack
       string m_lexfile;
     public:
       LexicalPhraseScorer2<Token> scorer;
 
-      PScoreLex1(string const& alphaspec, string const& lexfile)
+      PScoreLex1(string const& alphaspec, 
+		 string const& fade, 
+		 string const& lexfile)
       {
 	this->m_index = -1;
 	this->m_num_feats = 2;
@@ -26,6 +35,7 @@ namespace Moses {
 	this->m_feature_names.push_back("lexfwd");
 	this->m_feature_names.push_back("lexbwd");
 	m_alpha = atof(alphaspec.c_str());
+	m_fade  = atof(fade.c_str());
 	m_lexfile = lexfile;
       }
 
@@ -70,6 +80,11 @@ namespace Moses {
 		     pp.start2,0, pp.len2, pp.aln, m_alpha,
 		     (*dest)[this->m_index],
 		     (*dest)[this->m_index+1]);
+	if (m_fade)
+	  {
+	    (*dest)[this->m_index]   /= 1 + m_fade * (pp.joint-1);
+	    (*dest)[this->m_index+1] /= 1 + m_fade * (pp.joint-1);
+	  }
       }
     };
   } //namespace bitext
