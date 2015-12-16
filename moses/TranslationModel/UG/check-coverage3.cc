@@ -42,7 +42,7 @@ basename(string const path, string const suffix)
 
 int main(int argc, char* argv[])
 {
-  boost::intrusive_ptr<bitext_t> B(new bitext_t);
+  boost::shared_ptr<bitext_t> B(new bitext_t);
   B->open(argv[1],argv[2],argv[3]);
   string line;
   string ifile = argv[4];
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 	{
 	  bitext_t::iter m(B->I1.get());
 	  for (size_t k = i; k < snt.size() && m.extend(snt[k]); ++k);
-	  for (size_t num_occurrences = m.ca(); m.size(); m.up())
+	  for (size_t num_occurrences = 0; m.size(); m.up())
 	    {
 	      if (size_t(m.ca()) == num_occurrences) continue;
 	      num_occurrences = m.ca();
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 	      boost::format fmt("%4d/%d/%d |%s| (%4.2f : %4.2f)"); 
 	      BOOST_FOREACH(PhrasePair<Token>& ppair, ppairs)
 		{
-		  if (ppair.joint * 100 < ppair.good1) break;
+		  // if (ppair.joint * 100 < ppair.good1) break;
 		  ppair.good2 = ppair.raw2 * float(ppair.good1)/ppair.raw1;
 		  ppair.good2 = max(ppair.good2, ppair.joint);
 
