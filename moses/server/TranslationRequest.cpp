@@ -52,6 +52,7 @@ void
 TranslationRequest::
 Run()
 {
+  s_current_task.reset(new ttasksptr(m_self.lock()));
   typedef std::map<std::string,xmlrpc_c::value> param_t;
   param_t const& params = m_paramList.getStruct(0);
   parse_request(params);
@@ -62,8 +63,6 @@ Run()
   param_t::const_iterator si = params.find("context-weights");
   if (si != params.end()) SetContextWeights(*m_scope, si->second);
   
-  Moses::StaticData const& SD = Moses::StaticData::Instance();
-
   if (is_syntax(m_options->search.algo))
     run_chart_decoder();
   else
@@ -74,7 +73,7 @@ Run()
     m_done = true;
   }
   m_cond.notify_one();
-
+  s_current_task.reset();
 }
 
 /// add phrase alignment information from a Hypothesis
