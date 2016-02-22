@@ -18,7 +18,8 @@ Bitext<Token>::agenda
   //   reduce the number of lock / unlock operations we need to do
   //   during sampling.
 
-  uint64_t sid=0, offset=0;       // sid and offset of source phrase
+  tpt::id_type sid=0;             // sid of source phrase
+  tpt::offset_type offset=0;      // offset of source phrase
   size_t s1=0, s2=0, e1=0, e2=0;  // soft and hard boundaries of target phrase
   std::vector<unsigned char> aln; // stores phrase-pair-internal alignment
   while(SPTR<job> j = ag.get_job())

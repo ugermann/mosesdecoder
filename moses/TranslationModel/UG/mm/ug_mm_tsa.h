@@ -59,13 +59,7 @@ namespace sapt
     readSid(char const* p, char const* q, id_type& sid) const;
 
     char const*
-    readSid(char const* p, char const* q, ::uint64_t& sid) const;
-
-    char const*
-    readOffset(char const* p, char const* q, uint16_t& offset) const;
-
-    char const*
-    readOffset(char const* p, char const* q, ::uint64_t& offset) const;
+    readOffset(char const* p, char const* q, offset_type& offset) const;
 
     void sanityCheck() const;
 
@@ -177,18 +171,21 @@ namespace sapt
   mmTSA<TOKEN>::
   readSid(char const* p, char const* q, id_type& sid) const
   {
-    return tpt::tightread(p,q,sid);
+    return tpt::numread(p,sid);
   }
 
   // ======================================================================
 
+/*
   template<typename TOKEN>
   char const*
   mmTSA<TOKEN>::
   readSid(char const* p, char const* q, ::uint64_t& sid) const
   {
-    return tpt::tightread(p,q,sid);
+    // TODO: XXX: is this used anywhere? Why? (typedef id_type is not good???)
+    return tpt::numread(p,sid);
   }
+*/
 
   // ======================================================================
 
@@ -196,22 +193,23 @@ namespace sapt
   inline
   char const*
   mmTSA<TOKEN>::
-  readOffset(char const* p, char const* q, uint16_t& offset) const
+  readOffset(char const* p, char const* q, offset_type& offset) const
   {
-    return tpt::tightread(p,q,offset);
+    return tpt::numread(p,offset);
   }
 
   // ======================================================================
-
+/*
   template<typename TOKEN>
   inline
   char const*
   mmTSA<TOKEN>::
   readOffset(char const* p, char const* q, ::uint64_t& offset) const
   {
+    // TODO: WHY??????
     return tpt::tightread(p,q,offset);
   }
-
+*/
   // ======================================================================
 
   template<typename TOKEN>
@@ -219,12 +217,12 @@ namespace sapt
   mmTSA<TOKEN>::
   rawCnt(char const* p, char const* const q) const
   {
-    id_type sid; uint16_t off;
+    id_type sid; offset_type off;
     size_t ret=0;
     while (p < q)
       {
-	p = tpt::tightread(p,q,sid);
-	p = tpt::tightread(p,q,off);
+	p = tpt::numread(p,sid);
+	p = tpt::numread(p,off);
 	ret++;
       }
     return ret;
@@ -239,12 +237,12 @@ namespace sapt
 	    count_type& sids, count_type& raw) const
   {
     raw = 0;
-    id_type sid; uint16_t off;
+    id_type sid; offset_type off;
     boost::dynamic_bitset<uint64_t> check(this->corpus->size());
     while (p < q)
       {
-	p = tpt::tightread(p,q,sid);
-	p = tpt::tightread(p,q,off);
+	p = tpt::numread(p,sid);
+	p = tpt::numread(p,off);
 	check.set(sid);
 	raw++;
       }

@@ -79,7 +79,7 @@ BitextSampler : public Moses::reference_counter
   size_t perform_full_phrase_extraction();
 
   int check_sample_distribution(uint64_t const& sid, uint64_t const& offset);
-  bool flip_coin(id_type const& sid, ushort const& offset, 
+  bool flip_coin(tpt::id_type const& sid, tpt::offset_type const& offset,
                  SamplingBias const* bias);
   bool 
   flip_coin(size_t options_total, 
@@ -404,7 +404,7 @@ flip_coin(size_t options_total,
 template<typename Token>
 bool 
 BitextSampler<Token>::
-flip_coin(id_type const& sid, ushort const& offset, bias_t const* bias)
+flip_coin(tpt::id_type const& sid, tpt::offset_type const& offset, bias_t const* bias)
 {
   int no_maybe_yes = bias ? check_sample_distribution(sid, offset) : 1;
   if (no_maybe_yes == 0) return false; // no
