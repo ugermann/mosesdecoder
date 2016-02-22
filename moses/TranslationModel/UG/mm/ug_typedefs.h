@@ -29,6 +29,7 @@ namespace sapt
   typedef std::vector<int_3d_table>      int_4d_table;
 
   typedef tpt::id_type id_type;
+  typedef tpt::offset_type offset_type;
   typedef tpt::uchar uchar;
   typedef tpt::filepos_type filepos_type;
 }

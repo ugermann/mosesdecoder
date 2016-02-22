@@ -4,9 +4,8 @@ namespace sapt
 {
   namespace ttrack
   {
-    using tpt::id_type;
     Position::Position() : sid(0), offset(0) {};
-    Position::Position(id_type _sid, ushort _off) : sid(_sid), offset(_off) {};
+    Position::Position(tpt::id_type _sid, tpt::offset_type _off) : sid(_sid), offset(_off) {};
 
   }
 }

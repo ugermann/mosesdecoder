@@ -172,10 +172,6 @@ namespace sapt
     char const*
     readSid(char const* p, char const* q, id_type& sid) const = 0;
 
-    virtual
-    char const*
-    readSid(char const* p, char const* q, ::uint64_t& sid) const = 0;
-
     /** read the offset part of the index entry into /offset/
      *  @return position of the next entry in the index.
      *
@@ -185,11 +181,7 @@ namespace sapt
      */
     virtual
     char const*
-    readOffset(char const* p, char const* q, uint16_t& offset) const = 0;
-
-    virtual
-    char const*
-    readOffset(char const* p, char const* q, ::uint64_t& offset) const = 0;
+    readOffset(char const* p, char const* q, offset_type& offset) const = 0;
 
     /** @return raw occurrence count
      *
@@ -249,8 +241,8 @@ namespace sapt
   {
     count_type wcount=0;
     char const* p = startRange;
-    id_type sid;
-    ushort  off;
+    tpt::id_type sid;
+    tpt::offset_type off;
     while (p < endRange)
       {
         p = readSid(p,endRange,sid);

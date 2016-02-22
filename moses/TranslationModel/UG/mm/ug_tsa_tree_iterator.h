@@ -418,9 +418,10 @@ namespace sapt
     if (p < 0) p += upper.size();
     char const* lb = lower_bound(p);
     char const* ub = upper_bound(p);
-    ::uint64_t sid,off;
+    tpt::id_type sid;
+    tpt::offset_type off;
     root->readOffset(root->readSid(lb,ub,sid),ub,off);
-    ::uint64_t ret = (sid<<32) + (off<<16) + ::uint64_t(p+1);
+    ::uint64_t ret = (uint64_t(sid)<<32) + (uint64_t(off)<<16) + ::uint64_t(p+1);
     return ret;
   }
 
@@ -503,8 +504,8 @@ namespace sapt
     char const* lo = lower.back();
     char const* up = upper.back();
     char const* p = lo;
-    id_type sid;
-    ushort  off;
+    tpt::id_type sid;
+    tpt::offset_type  off;
     count_type wcount=0;
     while (p < up)
       {

@@ -7,6 +7,7 @@
 // - multi-threaded sorting during TSA construction (currently painfully slow!)
 
 #include <iostream>
+#include <assert.h>
 
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/shared_ptr.hpp>
@@ -99,13 +100,7 @@ namespace sapt
     readSid(char const* p, char const* q, id_type& sid) const;
 
     char const*
-    readSid(char const* p, char const* q, ::uint64_t& sid) const;
-
-    char const*
-    readOffset(char const* p, char const* q, uint16_t& offset) const;
-
-    char const*
-    readOffset(char const* p, char const* q, ::uint64_t& offset) const;
+    readOffset(char const* p, char const* q, offset_type& offset) const;
 
     void
     sanityCheck() const;
@@ -309,7 +304,7 @@ namespace sapt
     sid = reinterpret_cast<cpos const*>(p)->sid;
     return p;
   }
-
+/*
   template<typename TOKEN>
   char const*
   imTSA<TOKEN>::
@@ -320,18 +315,18 @@ namespace sapt
     sid = reinterpret_cast<cpos const*>(p)->sid;
     return p;
   }
-
+*/
   template<typename TOKEN>
   char const*
   imTSA<TOKEN>::
-  readOffset(char const* p, char const* q, uint16_t& offset) const
+  readOffset(char const* p, char const* q, offset_type& offset) const
   {
     assert(reinterpret_cast<cpos const*>(p) >= &(this->sufa.front()));
     assert(reinterpret_cast<cpos const*>(p) <= &(this->sufa.back()));
     offset = reinterpret_cast<cpos const*>(p)->offset;
     return p+sizeof(cpos);
   }
-
+/*
   template<typename TOKEN>
   char const*
   imTSA<TOKEN>::
@@ -342,7 +337,7 @@ namespace sapt
     offset = reinterpret_cast<cpos const*>(p)->offset;
     return p+sizeof(cpos);
   }
-
+*/
   template<typename TOKEN>
   count_type
   imTSA<TOKEN>::
@@ -381,6 +376,7 @@ namespace sapt
     std::ofstream out(fname.c_str());
     filepos_type idxStart(0);
     id_type idxSize(index.size());
+    tpt::numwrite(out,tpt::INDEX_V2_MAGIC);
     tpt::numwrite(out,idxStart);
     tpt::numwrite(out,idxSize);
     std::vector<filepos_type> mmIndex;
@@ -389,8 +385,8 @@ namespace sapt
         mmIndex.push_back(out.tellp());
         for (size_t k = this->index[i-1]; k < this->index[i]; ++k)
           {
-            tpt::tightwrite(out,sufa[k].sid,0);
-            tpt::tightwrite(out,sufa[k].offset,1);
+            tpt::numwrite(out,sufa[k].sid);
+            tpt::numwrite(out,sufa[k].offset);
           }
       }
     mmIndex.push_back(out.tellp());
@@ -421,7 +417,8 @@ namespace sapt
     BOOST_FOREACH(id_type sid, newsids)
       {
 	assert(sid < crp->size());
-  	for (size_t o = 0; o < (*crp)[sid].size(); ++o, ++n)
+        assert((*crp)[sid].size() <= ((offset_type) 0xFFFFFFFF)); // ensure the offset fits into offset_type
+        for (size_t o = 0; o < (*crp)[sid].size(); ++o, ++n)
   	  { nidx[n].offset = o; nidx[n].sid  = sid; }
       }
     sort(nidx.begin(),nidx.end(),sorter);

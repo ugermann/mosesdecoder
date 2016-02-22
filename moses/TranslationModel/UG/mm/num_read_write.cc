@@ -3,6 +3,12 @@ namespace tpt {
   typedef unsigned char uchar;
 
   void
+  numwrite(std::ostream& out, uint8_t const& x)
+  {
+    out.write((const char *) &x,1);
+  }
+
+  void
   numwrite(std::ostream& out, uint16_t const& x)
   {
     char buf[2];
@@ -35,6 +41,14 @@ namespace tpt {
     buf[6] = (x>>48)%256;
     buf[7] = (x>>56)%256;
     out.write(buf,8);
+  }
+
+  char const*
+  numread(char const* src, uint8_t & x)
+  {
+    uchar const* d = reinterpret_cast<uchar const*>(src);
+    x = (uint8_t(d[0])<<0);
+    return src+1;
   }
 
   char const*

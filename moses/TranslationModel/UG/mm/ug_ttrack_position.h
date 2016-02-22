@@ -12,7 +12,6 @@
 
 namespace sapt
 {
-  using tpt::id_type;
   namespace ttrack
   {
     /** Represents a position in a corpus (sentence Id + offset from beginning
@@ -21,10 +20,10 @@ namespace sapt
     Position
     {
     public:
-      id_type sid;
-      ushort  offset;
+      tpt::id_type sid;
+      tpt::offset_type offset;
       Position();
-      Position(id_type _sid, ushort _off);
+      Position(tpt::id_type _sid, tpt::offset_type _off);
       template<typename TTRACK_TYPE> class LESS; // probably abandoned
     }; // end of deklaration of Position
 

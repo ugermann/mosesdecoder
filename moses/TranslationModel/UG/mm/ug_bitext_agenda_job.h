@@ -18,8 +18,8 @@ job
   double rnddenom;    // denominator for scaling random sampling
   size_t min_diverse; // minimum number of distinct translations
 
-  bool flip_coin(uint64_t & sid, uint64_t & offset);
-  bool step(uint64_t & sid, uint64_t & offset); // proceed to next occurrence
+  bool flip_coin(tpt::id_type & sid, tpt::offset_type & offset);
+  bool step(tpt::id_type & sid, tpt::offset_type & offset); // proceed to next occurrence
 
 public:
   size_t         workers; // how many workers are working on this job?
@@ -35,7 +35,7 @@ public:
   SPTR<pstats>     stats; // stores statistics collected during sampling
   SPTR<SamplingBias const> const m_bias; // sentence-level bias for sampling
   float bias_total;
-  bool nextSample(uint64_t & sid, uint64_t & offset); // select next occurrence
+  bool nextSample(tpt::id_type & sid, tpt::offset_type & offset); // select next occurrence
 
   int
   check_sample_distribution(uint64_t const& sid, uint64_t const& offset);
@@ -94,7 +94,7 @@ Bitext<Token>::agenda::job
       stats->raw_cnt = 0;
       for (char const* x = m.lower_bound(-1); x < stop;)
 	{
-	  uint32_t sid; ushort offset;
+          tpt::id_type sid; tpt::offset_type offset;
 	  x = root->readSid(x,stop,sid);
 	  x = root->readOffset(x,stop,offset);
 #if 0
@@ -183,7 +183,7 @@ int Bitext<Token>::agenda::job
 
 template<typename Token>
 bool Bitext<Token>::agenda::job
-::flip_coin(uint64_t & sid, uint64_t & offset)
+::flip_coin(tpt::id_type & sid, tpt::offset_type & offset)
 {
   int no_maybe_yes = m_bias ? check_sample_distribution(sid, offset) : 1;
   if (no_maybe_yes == 0) return false; // no
@@ -203,7 +203,7 @@ bool Bitext<Token>::agenda::job
 
 template<typename Token>
 bool Bitext<Token>::agenda::job
-::step(uint64_t & sid, uint64_t & offset)
+::step(tpt::id_type & sid, tpt::offset_type & offset)
 { // caller must lock!
   if (next == stop) return false;
   UTIL_THROW_IF2(next > stop, "Fatal error at " << HERE << ".");
@@ -215,7 +215,7 @@ bool Bitext<Token>::agenda::job
 
 template<typename Token>
 bool Bitext<Token>::agenda::job
-::nextSample(uint64_t & sid, uint64_t & offset)
+::nextSample(tpt::id_type & sid, tpt::offset_type & offset)
 {
   boost::lock_guard<boost::mutex> jguard(lock);
   if (max_samples == 0) // no sampling, consider all occurrences
