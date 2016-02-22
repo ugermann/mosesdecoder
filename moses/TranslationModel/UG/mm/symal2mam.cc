@@ -110,7 +110,8 @@ copySentence(track_t const& T, size_t sid, ostream& dest)
 size_t
 procSymalLine(string const& line, ostream& out)
 {
-  ushort a,b; char dash;
+  size_t a,b; char dash;
+  offset_type x,y;
   istringstream buf(line);
   while (buf>>a>>dash>>b)
     {
@@ -120,19 +121,22 @@ procSymalLine(string const& line, ostream& out)
         }
       assert(len1 == 0 || a<len1);
       assert(len2 == 0 || b<len2);
-      tpt::binwrite(out,a);
-      tpt::binwrite(out,b);
+      assert(a <= ((offset_type) 0xFFFFFFFF) && b <= ((offset_type) 0xFFFFFFFF)); // ensure alignments fit into offset_type
+      x=a; y=b;
+      tpt::numwrite(out,x);
+      tpt::numwrite(out,y);
     }
   return out.tellp();
 }
 
 void finiMAM(ofstream& out, vector<id_type>& idx, id_type numTok)
 {
-  id_type offset = sizeof(filepos_type)+2*sizeof(id_type);
+  id_type offset = sizeof(tpt::INDEX_V2_MAGIC)+sizeof(filepos_type)+2*sizeof(id_type);
   filepos_type idxStart = out.tellp();
   for (vector<id_type>::iterator i = idx.begin(); i != idx.end(); ++i)
     tpt::numwrite(out,*i-offset);
   out.seekp(0);
+  tpt::numwrite(out,tpt::INDEX_V2_MAGIC);
   tpt::numwrite(out,idxStart);
   tpt::numwrite(out,id_type(idx.size()-1));
   tpt::numwrite(out,numTok);
@@ -147,6 +151,7 @@ finalize(ofstream& out, vector<id_type> const& idx, id_type tokenCount)
   for (size_t i = 0; i < idx.size(); ++i)
     tpt::numwrite(out,idx[i]);
   out.seekp(0);
+  tpt::numwrite(out,tpt::INDEX_V2_MAGIC);
   tpt::numwrite(out,idxStart);
   tpt::numwrite(out,idxSize-1);
   tpt::numwrite(out,tokenCount);
@@ -270,6 +275,7 @@ void
 initialize(ofstream& out, string const& fname)
 {
   out.open(fname.c_str());
+  tpt::numwrite(out,tpt::INDEX_V2_MAGIC);
   tpt::numwrite(out,filepos_type(0)); // place holder for index start
   tpt::numwrite(out,id_type(0));      // place holder for index size
   tpt::numwrite(out,id_type(0));      // place holder for token count

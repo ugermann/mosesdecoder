@@ -226,6 +226,7 @@ numberize()
   ofstream out(tmpFile.c_str());
   filepos_type startIdx=0;
   id_type idxSize=0,totalWords=0;
+  tpt::numwrite(out,tpt::INDEX_V2_MAGIC);
   tpt::numwrite(out,startIdx);   // place holder, to be filled at the end
   tpt::numwrite(out,idxSize);    // place holder, to be filled at the end
   tpt::numwrite(out,totalWords); // place holder, to be filled at the end
@@ -252,6 +253,7 @@ numberize()
     tpt::numwrite(out,(*index)[i]);
   out.seekp(0);
   idxSize = index->size();
+  tpt::numwrite(out,tpt::INDEX_V2_MAGIC);
   tpt::numwrite(out, startIdx);
   tpt::numwrite(out, idxSize - 1);
   tpt::numwrite(out, totalWords);
@@ -290,8 +292,10 @@ void remap()
   if (!quiet) cerr << "Remapping ids ... ";
   filepos_type idxOffset;
   id_type totalWords, idxSize;
+  uint64_t versionMagic;
   boost::iostreams::mapped_file mtt(tmpFile);
   char const* p = mtt.data();
+  p = tpt::numread(p,versionMagic);
   p = tpt::numread(p,idxOffset);
   p = tpt::numread(p,idxSize);
   p = tpt::numread(p,totalWords);

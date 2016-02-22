@@ -65,12 +65,12 @@ printRangeMAM(size_t start, size_t stop)
       char const* p = MAM.sntStart(start);
       char const* q = MAM.sntEnd(start);
       if (with_sids) cout << start << " ";
-      ushort s,t;
+      offset_type s,t;
       while (p < q)
 	{
-	  p = tpt::binread(p,s);
-	  p = tpt::binread(p,t);
-	  cout << s << "-" << t << " ";
+	  p = tpt::numread(p,s);
+	  p = tpt::numread(p,t);
+	  cout << size_t(s) << "-" << size_t(t) << " ";
 	}
       cout << endl;
     }
