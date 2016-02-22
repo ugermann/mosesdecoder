@@ -78,8 +78,8 @@ namespace sapt
 {
   using Moses::ttasksptr;
   using Moses::ttaskwptr;
-  using tpt::binread;
-  using tpt::binwrite;
+  using tpt::numread;
+  using tpt::numwrite;
 
   float lbop(size_t const tries, size_t const succ, float const confidence);
   void write_bitvector(bitvector const& v, std::ostream& out);
@@ -435,6 +435,7 @@ namespace sapt
           full_alignment->resize(slen1*slen2*2);
         full_alignment->reset();
       }
+    offset_type s,t;
     size_t src,trg;
     size_t lft = forbidden.size();
     size_t rgt = 0;
@@ -447,15 +448,15 @@ namespace sapt
       {
         if (flip) 
           { 
-            p = binread(p,trg); 
+            p = numread(p,t); trg=t;
             assert(p<x); 
-            p = binread(p,src); 
+            p = numread(p,s); src=s;
           }
         else 
           { 
-            p = binread(p,src); 
+            p = numread(p,s); src=s;
             assert(p<x); 
-            p = binread(p,trg); 
+            p = numread(p,t); trg=t;
           }
 	  
         UTIL_THROW_IF2((src >= slen1 || trg >= slen2),
@@ -695,11 +696,11 @@ namespace sapt
     ag.first.resize(a1.size());
     ag.second.resize(a2.size());
     char const* x = Tx->sntStart(sid);
-    size_t a, b;
+    offset_type a, b;
     while (x < Tx->sntEnd(sid))
       {
-        x = binread(x,a);
-        x = binread(x,b);
+        x = numread(x,a);
+        x = numread(x,b);
         if (a1.at(a) < 0 && a2.at(b) < 0)
           {
             a1[a] = a2[b] = agroups.size();
