@@ -125,6 +125,14 @@ namespace sapt
     Moses::prime(file);
     char const* p = file.data();
     filepos_type idxOffset;
+    uint64_t versionMagic;
+    p = tpt::numread(p,versionMagic);
+    if (versionMagic != tpt::INDEX_V2_MAGIC)
+      {
+        std::ostringstream msg;
+        msg << "mmTSA<>::open: File '" << fname << "' does not contain a recent v2 index (magic is wrong). Please re-build with mtt-build.";
+        throw std::runtime_error(msg.str().c_str());
+      }
     p = tpt::numread(p,idxOffset);
     p = tpt::numread(p,this->indexSize);
 

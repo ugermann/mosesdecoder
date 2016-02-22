@@ -394,6 +394,7 @@ namespace sapt
     for (size_t i = 0; i < mmIndex.size(); i++)
       tpt::numwrite(out,mmIndex[i]-mmIndex[0]);
     out.seekp(0);
+    tpt::numwrite(out,tpt::INDEX_V2_MAGIC);
     tpt::numwrite(out,idxStart);
     out.close();
   }

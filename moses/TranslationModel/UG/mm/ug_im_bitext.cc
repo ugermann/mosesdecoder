@@ -66,14 +66,14 @@ namespace sapt
         size_t slen2  = ret->T2->sntLen(i);
         char const* p = ret->Tx->sntStart(i);
         char const* q = ret->Tx->sntEnd(i);
-        size_t k;
+        offset_type k;
         while (p < q)
           {
-            p = binread(p,k);
+            p = numread(p,k);
             assert(p);
             assert(p < q);
             assert(k < slen1);
-            p = binread(p,k);
+            p = numread(p,k);
             assert(p);
             assert(k < slen2);
           }
