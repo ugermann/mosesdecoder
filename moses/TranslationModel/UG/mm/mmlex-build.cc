@@ -236,13 +236,13 @@ processSentence(id_type sid)
   // count links
   char const*   p = Tx.sntStart(sid);
   char const*   q = Tx.sntEnd(sid);
-  ushort r,c;
+  tpt::offset_type r,c;
   if (verbose && sid % 1000000 == 0)
     cerr << sid/1000000 << " M sentences processed" << endl;
   while (p < q)
     {
-      p = tpt::binread(p,r);
-      p = tpt::binread(p,c);
+      p = tpt::numread(p,r);
+      p = tpt::numread(p,c);
       // cout << sid << " " << r << "-" << c << endl;
       UTIL_THROW_IF2(r >= check1.size(), "out of bounds at line " << sid);
       UTIL_THROW_IF2(c >= check2.size(), "out of bounds at line " << sid);

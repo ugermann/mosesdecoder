@@ -71,11 +71,11 @@ check_range(size_t start, size_t stop)
       size_t slen = T1.sntLen(sid);
       size_t tlen = T2.sntLen(sid);
       if (p == q) ++noAln;
-      ushort s,t;
+      offset_type s,t;
       while (p < q)
 	{
-	  p = binread(p,s);
-	  p = binread(p,t);
+	  p = numread(p,s);
+	  p = numread(p,t);
 	  if (s >= slen || t >= tlen)
 	    {
 	      cout << "alignment out of bounds in sentence " << sid << ": "

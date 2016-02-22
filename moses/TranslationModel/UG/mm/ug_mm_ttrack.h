@@ -180,10 +180,10 @@ namespace sapt
 	assert(0);
       }
     tpt::filepos_type idxOffset;
-    uint64_t indexMagic;
+    uint64_t versionMagic;
     char const* p = file.data();
-    p = tpt::numread(p, indexMagic);
-    if (indexMagic != tpt::INDEX_V2_MAGIC)
+    p = tpt::numread(p, versionMagic);
+    if (versionMagic != tpt::INDEX_V2_MAGIC)
       {
         std::ostringstream msg;
         msg << "mmTtrack<>::open: File '" << fname << "' does not contain a recent v2 index (magic is wrong). Please re-build with mtt-build.";
