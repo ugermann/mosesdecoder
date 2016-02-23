@@ -96,6 +96,9 @@ namespace sapt
     tpt::filepos_type idxOffset;
     const char* p = myfile.data();
     id_type numSent,numWords;
+    uint64_t versionMagic;
+    p = tpt::numread(p, versionMagic);
+    assert(versionMagic == tpt::INDEX_V2_MAGIC);
     p = tpt::numread(p,idxOffset);
     p = tpt::numread(p,numSent);
     p = tpt::numread(p,numWords);
