@@ -76,14 +76,9 @@ namespace sapt
   index_jump(char const* a, char const* z, float ratio) const
   {
     assert(ratio >= 0 && ratio < 1);
-    char const* m = a+int(ratio*(z-a));
-    if (m > a)
-      {
-	while (m > a && *m <  0) --m;
-	while (m > a && *m >= 0) --m;
-	if (*m < 0) ++m;
-      }
-    assert(*m >= 0);
+    int jump = (ratio*(z-a));
+    char const* m = a+jump-(jump%(sizeof(tpt::id_type)+sizeof(tpt::offset_type)));  // ensure we are landing on exact location
+    assert(m >= a && m < z);
     return m;
   }
 
