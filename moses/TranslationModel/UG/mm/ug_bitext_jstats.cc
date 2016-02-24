@@ -8,6 +8,8 @@ namespace sapt
   float    jstats::bcnt() const { return my_bcnt; }
   uint32_t jstats::cnt2() const { return my_cnt2; }
 
+  phrase<id_type> const& jstats::trg() const { return my_trg; }
+
   // What was that used for again? UG
   bool jstats::valid() { return my_wcnt >= 0; }
   void jstats::validate()   { if (my_wcnt < 0) my_wcnt *= -1; }
@@ -70,7 +72,8 @@ namespace sapt
 
   size_t
   jstats::
-  add(float w, float b, std::vector<unsigned char> const& a, uint32_t const cnt2,
+  add(phrase<id_type> const& trg, // target phrase
+      float w, float b, std::vector<unsigned char> const& a, uint32_t const cnt2,
       uint32_t fwd_orient, uint32_t bwd_orient, int const docid)
   {
     boost::lock_guard<boost::mutex> lk(this->lock);
@@ -78,6 +81,7 @@ namespace sapt
     my_rcnt += 1;
     my_wcnt += w;
     my_bcnt += b;
+    my_trg = trg;
     if (a.size())
       {
         size_t i = 0;
