@@ -3,7 +3,9 @@
 #include <string>
 #include <stdint.h>
 #include "ug_typedefs.h"
-#include "ug_lexical_reordering.h"
+#include "ug_lexical_reordering.h"m
+// for struct phrase
+#include "ug_ttrack_base.h"
 #include <boost/thread.hpp>
 
 namespace sapt
@@ -17,7 +19,8 @@ namespace sapt
     uint32_t my_rcnt; // unweighted joint count
     uint32_t my_cnt2; // raw counts L2
     float    my_wcnt; // weighted joint count
-    float    my_bcnt; // cumulative bias 
+    float    my_bcnt; // cumulative bias
+    phrase<id_type> my_trg; // target phrase
 
     // to do: use a static alignment pattern store that stores each pattern only
     // once, so that we don't have to store so many alignment std::vectors
@@ -36,11 +39,13 @@ namespace sapt
     uint32_t cnt2() const; // raw target phrase occurrence count
     float    wcnt() const; // weighted joint counts
     float    bcnt() const; // cumulative bias scores
+    phrase<id_type> const& trg() const; // target phrase
 
     std::vector<std::pair<size_t, std::vector<unsigned char> > > const & aln() const;
 
     size_t 
-    add(float w, float b, std::vector<unsigned char> const& a, uint32_t const cnt2, 
+    add(phrase<id_type> const& trg, // target phrase
+        float w, float b, std::vector<unsigned char> const& a, uint32_t const cnt2,
         uint32_t fwd_orient, uint32_t bwd_orient, int const docid);
 
     void invalidate();

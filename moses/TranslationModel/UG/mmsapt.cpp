@@ -741,14 +741,15 @@ namespace Moses
 
     vector<PhrasePair<Token> > ppfix,ppdyn;
     PhrasePair<Token>::SortByTargetIdSeq sort_by_tgt_id;
+    phrase<Token> sp(sphrase);
     if (sfix)
       {
-        expand(mfix, *btfix, *sfix, ppfix, m_bias_log);
+        expand(mfix.getPid(), sp, /* fwd = */ true, *btfix, *sfix, ppfix, m_bias_log);
         sort(ppfix.begin(), ppfix.end(),sort_by_tgt_id);
       }
     if (sdyn)
       {
-        expand(mdyn, *dyn, *sdyn, ppdyn, m_bias_log);
+        expand(mdyn.getPid(), sp, /* fwd = */ true, *dyn, *sdyn, ppdyn, m_bias_log);
         sort(ppdyn.begin(), ppdyn.end(),sort_by_tgt_id);
       }
 

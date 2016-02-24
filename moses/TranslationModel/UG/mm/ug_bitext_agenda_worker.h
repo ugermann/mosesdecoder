@@ -78,6 +78,8 @@ Bitext<Token>::agenda
 	      SPTR<iter> b = I.find(o + s, e1 - s);
 	      UTIL_THROW_IF2(!b || b->size() < e1-s, "target phrase not found");
 
+              phrase<Token> trg(o + s, e1 - s);
+
 	      for (size_t i = e1; i <= e2; ++i)
 		{
 		  uint64_t tpid = b->getPid();
@@ -90,7 +92,7 @@ Bitext<Token>::agenda
 
 		  size_t raw2 = b->approxOccurrenceCount();
 		  float bwgt = j->m_bias ? (*j->m_bias)[sid] : 1;
-		  j->stats->add(tpid, sample_weight, bwgt, aln, raw2,
+		  j->stats->add(tpid, (phrase<id_type> &) trg, sample_weight, bwgt, aln, raw2,
 				po_fwd, po_bwd, docid);
 		  bool ok = (i == e2) || b->extend(o[i].id());
 		  UTIL_THROW_IF2(!ok, "Could not extend target phrase.");

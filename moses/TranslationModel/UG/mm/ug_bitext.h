@@ -765,23 +765,19 @@ namespace sapt
 
   template<typename Token>
   void
-  expand(typename Bitext<Token>::iter const& m,
+  expand(pid_type pid,
+         phrase<Token> src,
+         bool fwd,
          Bitext<Token> const& bt, pstats const& ps,
          std::vector<PhrasePair<Token> >& dest, std::ostream* log)
   {
-    bool fwd = m.root == bt.I1.get();
     dest.reserve(ps.trg.size());
     PhrasePair<Token> pp;
-    pp.init(m.getPid(), !fwd, m.getToken(0), m.size(), &ps, 0);
-    // cout << HERE << " "
-    // << toString(*(fwd ? bt.V1 : bt.V2), pp.start1,pp.len1) << std::endl;
+    pp.init(pid, !fwd, src.begin, src.len, &ps, 0);
     pstats::trg_map_t::const_iterator a;
     for (a = ps.trg.begin(); a != ps.trg.end(); ++a)
       {
-        uint32_t sid,off,len;
-        parse_pid(a->first, sid, off, len);
-        pp.update(a->first, (fwd ? bt.T2 : bt.T1)->sntStart(sid)+off,
-                  len, a->second);
+        pp.update(a->first, a->second);
         dest.push_back(pp);
       }
   }

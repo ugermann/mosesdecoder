@@ -56,6 +56,30 @@ namespace sapt
     return buf.str();
   }
 
+  /**
+   * Phrase representation in memory as a sequence of word IDs.
+   * For passing around a pointer and length conveniently.
+   *
+   * May be inside a corpus track, a vector, ...
+   * Just take care that the data continues to exist in memory.
+   *
+   * Templated so you can access it as the type you want, e.g. the SimpleWordId templated in many places.
+   *
+   * @author David Madl <git@abanbytes.eu>
+   */
+  template<class Token>
+  struct phrase {
+    const Token *begin;
+    size_t len;
+
+    phrase(const Token *_begin, size_t _len): begin(_begin), len(_len) {}
+    phrase(std::vector<tpt::id_type> const& p):
+      begin(reinterpret_cast<const Token*>(p.data())),
+      len(p.size())
+    {}
+    phrase(): begin(NULL), len(0) {}
+  };
+
   template<typename TKN=id_type>
   class Ttrack
   {

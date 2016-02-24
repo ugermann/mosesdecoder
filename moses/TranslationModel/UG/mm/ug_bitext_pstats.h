@@ -42,7 +42,8 @@ namespace sapt
     size_t count_workers() { return in_progress; }
 
     size_t
-    add(uint64_t const  pid, // target phrase id
+    add(pid_type const  pid, // target phrase id
+        phrase<id_type> const& trg, // target phrase
         float const       w, // sample weight (1./(# of phrases extractable))
         float const       b, // sample bias score
         alnvec const&     a, // local alignment
