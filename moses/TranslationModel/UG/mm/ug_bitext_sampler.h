@@ -19,7 +19,9 @@
 #include "moses/TranslationModel/UG/generic/sorting/NBestList.h"
 namespace sapt
 {
-  
+
+typedef std::vector<id_type> SrcPhrase;
+
 enum 
 sampling_method 
   { 
@@ -90,8 +92,9 @@ BitextSampler : public Moses::reference_counter
 public:
   BitextSampler(BitextSampler const& other);
   // BitextSampler const& operator=(BitextSampler const& other);
-  BitextSampler(SPTR<bitext const> const& bitext, 
-                typename bitext::iter const& phrase,
+  BitextSampler(SPTR<bitext const> const& bitext,
+                SrcPhrase const& phrase,
+                bool fwd,
                 SPTR<SamplingBias const> const& bias, 
                 size_t const min_samples, 
                 size_t const max_samples,
@@ -140,6 +143,7 @@ private:
       nbest.add(I);
     }
 
+    // find upper end of threshold (not sure what 'upper end' means in heap of nbest)
     float th = (*m_bias)[nbest.get_unsorted(0).sid];
     size_t stop = nbest.size();
     while (stop && (*m_bias)[nbest[stop-1].sid] == th) --stop;
@@ -419,18 +423,17 @@ flip_coin(tpt::id_type const& sid, tpt::offset_type const& offset, bias_t const*
 
 template<typename Token>
 BitextSampler<Token>::
-BitextSampler(SPTR<Bitext<Token> const> const& bitext, 
-              typename bitext::iter const& phrase,
+BitextSampler(SPTR<Bitext<Token> const> const& bitext,
+              SrcPhrase const& phrase,
+              bool fwd,
               SPTR<SamplingBias const> const& bias, 
               size_t const min_samples, 
               size_t const max_samples,
               sampling_method const method)
   : m_bitext(bitext)
   , m_plen(phrase.size())
-  , m_fwd(phrase.root == bitext->I1.get())
+  , m_fwd(fwd)
   , m_root(m_fwd ? bitext->I1 : bitext->I2)
-  , m_next(phrase.lower_bound(-1))
-  , m_stop(phrase.upper_bound(-1))
   , m_method(method)
   , m_bias(bias)
   , m_samples(max_samples)
@@ -438,12 +441,18 @@ BitextSampler(SPTR<Bitext<Token> const> const& bitext,
   , m_ctr(0)
   , m_total_bias(0)
   , m_finished(false)
-  , m_num_occurrences(phrase.ca())
   , m_rnd(0)
 {
   m_stats.reset(new pstats);
-  m_stats->raw_cnt = phrase.rawCnt(); // phrase.ca();
   m_stats->register_worker();
+
+  typename TSA<Token>::tree_iterator mfix(m_bitext->I1.get(),reinterpret_cast<const Token*>(phrase.data()),phrase.size());
+
+  m_next = mfix.lower_bound(-1);
+  m_stop = mfix.upper_bound(-1);
+  m_num_occurrences = (size_t) mfix.ca();
+
+  m_stats->raw_cnt = mfix.rawCnt(); // .ca();
 }
   
 template<typename Token>
