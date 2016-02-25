@@ -36,7 +36,10 @@ namespace sapt
 
   private:
 
-    char const* index_jump(char const* a, char const* z, float ratio) const;
+    virtual char const* index_jump(char const* a, char const* z, float ratio) const;
+
+    virtual char const* index_jump_precise(char const* startRange, char const* stopRange, size_t idx) const;
+
     char const* getLowerBound(id_type t) const;
     char const* getUpperBound(id_type t) const;
 
@@ -67,8 +70,8 @@ namespace sapt
 
   // ======================================================================
 
-  /** jump to the point 1/ratio in a tightly packed index
-   *  assumes that keys are flagged with '1', values with '0'
+  /**
+   * jump to the point 1/ratio in an index
    */
   template<typename TOKEN>
   char const*
@@ -79,6 +82,21 @@ namespace sapt
     int jump = (ratio*(z-a));
     char const* m = a+jump-(jump%(sizeof(tpt::id_type)+sizeof(tpt::offset_type)));  // ensure we are landing on exact location
     assert(m >= a && m < z);
+    return m;
+  }
+
+  /** @return an index position idx between
+   *  /startRange/ and /endRange/.
+   */
+  template<typename TOKEN>
+  char const*
+  mmTSA<TOKEN>::
+  index_jump_precise(char const* startRange,
+                     char const* stopRange,
+                     size_t idx) const
+  {
+    char const* m = startRange + idx * (sizeof(id_type) + sizeof(offset_type));
+    assert(m < stopRange);
     return m;
   }
 

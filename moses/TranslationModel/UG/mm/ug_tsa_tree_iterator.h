@@ -74,6 +74,9 @@ namespace sapt
     char const* lower_bound(int p) const;
     char const* upper_bound(int p) const;
 
+    /** @return an index position idx between lower_bound and upper_bound. */
+    char const* index_jump_precise(size_t idx) const;
+
     size_t size() const;
     // Token const& wid(int p) const;
     Token const* getToken(int p) const;
@@ -447,6 +450,19 @@ namespace sapt
     if (p < 0) p += upper.size();
     assert(p >= 0 && p < int(upper.size()));
     return upper[p];
+  }
+
+  /**
+   * @return an index position idx between /startRange/ and /endRange/.
+   */
+  template<typename Token>
+  char const*
+  TSA_tree_iterator<Token>::
+  index_jump_precise(size_t idx) const
+  {
+    const char* startRange = lower_bound(-1);
+    const char* stopRange = upper_bound(-1);
+    return root->index_jump_precise(startRange, stopRange, idx);
   }
 
   // ---------------------------------------------------------------------------

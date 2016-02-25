@@ -17,10 +17,14 @@
 #include "moses/TranslationModel/UG/generic/threading/ug_ref_counter.h"
 #include "moses/TranslationModel/UG/generic/threading/ug_thread_safe_counter.h"
 #include "moses/TranslationModel/UG/generic/sorting/NBestList.h"
+
+#include "fisheryates.h"
+
 namespace sapt
 {
 
 typedef std::vector<id_type> SrcPhrase;
+typedef std::size_t size_t;  // make CLion happy
 
 enum 
 sampling_method 
@@ -28,7 +32,8 @@ sampling_method
     full_coverage, 
     random_sampling, 
     ranked_sampling, 
-    ranked_sampling2 
+    ranked_sampling2,
+    ranked_sampling3
   };
   
 typedef ttrack::Position TokenPosition;
@@ -74,7 +79,9 @@ BitextSampler : public Moses::reference_counter
   double m_bias_total;
 
   size_t m_random_size_t;
-  double m_rnd_float; 
+  double m_rnd_float;
+
+  SrcPhrase m_phrase;
 
   /**
    * Attempt to extract a phrase pair, and on success, add it to m_stats.
@@ -118,6 +125,57 @@ public:
 
 //namespace bitext {
 private:
+  // ranked sampling on individual domain indexes
+  size_t
+  perform_ranked_sampling3()
+  {
+    // to do: static assert: bitext is convertible to mmBitext (Mmsapt only uses BitextSampler on mmBitext)
+    const mmBitext<Token>& bitext = reinterpret_cast<const mmBitext<Token>&>(*m_bitext);
+    // to do: static assert: convertible to document bias
+    const DocumentBias& domBias = reinterpret_cast<const DocumentBias&>(*m_bias);
+
+    assert(bitext.domainI1.size() > 0); // rudimentary check for presence of domain indexes
+
+    std::vector<std::pair<float, id_type> > domScores;
+    domBias.getRankedBias(domScores);
+
+    size_t needSamples = m_samples; // remaining samples to be collected
+
+    // in descending order of score, collect samples from each domain
+    std::vector<std::pair<float, id_type> >::iterator it;
+    for(it = domScores.begin(); needSamples > 0 && it != domScores.end(); it++) {
+      id_type idom = it->second;
+      needSamples -= ranked3_collect(needSamples, bitext.domainI1[idom], bitext.domainI2[idom]);
+    }
+
+    return 0; // nobody actually uses this.  AFAICT, this should be number of attempted samples.
+  }
+
+  /**
+   * Try to collect samples from given domain, and return actual amount collected there.
+   */
+  size_t ranked3_collect(size_t samples, SPTR<TSA<Token> > i1, SPTR<TSA<Token> > i2) {
+    size_t good_before = m_stats->good;
+    //size_t good_target = good_before + samples; // should always be m_samples here.
+
+    typename TSA<Token>::tree_iterator mfix(i1.get(), reinterpret_cast<const Token*>(m_phrase.data()), m_phrase.size());
+    size_t occurrences = mfix.rawCnt();
+
+    std::vector<size_t> sampleIndices;
+    // generate sample indices
+    random_indices(samples, occurrences, m_rnd, sampleIndices);
+
+    //while(m_stats->good < good_target) {
+    std::vector<size_t>::iterator it;
+    for(it = sampleIndices.begin(); it != sampleIndices.end(); it++) {
+      // to do: nicer random access syntax?
+      sapt::tsa::ArrayEntry I(mfix.index_jump_precise(*it));
+      consider_sample(I, i1, i2);
+    }
+
+    return m_stats->good - good_before;
+  }
+
 
 // the original ranked sampling
   size_t
@@ -324,6 +382,8 @@ public:
     }
     else if (m_method == ranked_sampling2)
       perform_ranked_sampling2();
+    else if (m_method == ranked_sampling3)
+      perform_ranked_sampling3();
     else if (m_method == random_sampling)
     {
       // std::cerr << "RANDOM SAMPLING " << HERE << std::endl;
@@ -451,6 +511,7 @@ BitextSampler(SPTR<Bitext<Token> const> const& bitext,
   , m_total_bias(0)
   , m_finished(false)
   , m_rnd(0)
+  , m_phrase(phrase)
 {
   m_stats.reset(new pstats);
   m_stats->register_worker();

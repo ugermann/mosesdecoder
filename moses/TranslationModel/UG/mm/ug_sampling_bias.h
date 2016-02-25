@@ -75,6 +75,12 @@ namespace sapt
     size() const;
 
     const std::map<id_type, float>& GetDocumentBiasMap() const;
+
+    /**
+     * Get a vector of unnormalized domain biases, in descending order of score.
+     * Each pair is <float, doc_index>
+     */
+    void getRankedBias(std::vector<std::pair<float, id_type> >& bias) const;
   };
 
   class
