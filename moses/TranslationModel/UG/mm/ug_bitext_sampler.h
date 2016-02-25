@@ -76,7 +76,16 @@ BitextSampler : public Moses::reference_counter
   size_t m_random_size_t;
   double m_rnd_float; 
 
+  /**
+   * Attempt to extract a phrase pair, and on success, add it to m_stats.
+   * @param p: the source phrase (as corpus location + implicit length in m_plen)
+   * @ param i1: corpus index 1 to use (may be domain-specific)
+   * @ param i2: index 2
+   */
+  size_t consider_sample(TokenPosition const& p, SPTR<TSA<Token> > i1, SPTR<TSA<Token> > i2);
+
   size_t consider_sample(TokenPosition const& p);
+
   size_t perform_random_sampling();
   size_t perform_full_phrase_extraction();
 
@@ -550,6 +559,15 @@ size_t
 BitextSampler<Token>::
 consider_sample(TokenPosition const& p)
 {
+  // by default, use the global index
+  return consider_sample(p, m_bitext->I1, m_bitext->I2);
+}
+
+template<typename Token>
+size_t
+BitextSampler<Token>::
+consider_sample(TokenPosition const& p, SPTR<TSA<Token> > i1, SPTR<TSA<Token> > i2)
+{
   std::vector<unsigned char> aln; 
   bitvector full_aln(100*100);
   PhraseExtractionRecord 
@@ -582,7 +600,7 @@ consider_sample(TokenPosition const& p)
   size_t max_evidence = 0;
   for (size_t s = rec.s1; s <= rec.s2; ++s)
     {
-      TSA<Token> const& I = m_fwd ? *m_bitext->I2 : *m_bitext->I1;
+      TSA<Token> const& I = m_fwd ? *i2 : *i1;
       SPTR<tsa_iter> b = I.find(o + s, rec.e1 - s);
       UTIL_THROW_IF2(!b || b->size() < rec.e1 - s, "target phrase not found");
 
