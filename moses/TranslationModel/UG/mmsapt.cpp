@@ -261,6 +261,8 @@ namespace Moses
           m_sampling_method = ranked_sampling;
         else if (m->second == "ranked2")
           m_sampling_method = ranked_sampling2;
+        else if (m->second == "ranked3")
+          m_sampling_method = ranked_sampling3;
         else if (m->second == "full")
           m_sampling_method = full_coverage;
         else UTIL_THROW2("unrecognized specification 'method='" << m->second

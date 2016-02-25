@@ -1,6 +1,9 @@
 // -*- c++ -*-
 // don't include this file directly! it is included by ug_bitext.h
 
+#include <boost/shared_ptr.hpp> // make CLion happy
+#include <vector> // make CLion happy
+
 namespace sapt
 {
   template<typename TKN>
@@ -12,9 +15,9 @@ namespace sapt
     void open_domain_indexes(std::string const base, std::string const L1, std::string L2);
     mmBitext();
 
-  private:
-    std::vector<SPTR<TSA<TKN> > > m_domainI1; // I1 indexes, separately for each domain
-    std::vector<SPTR<TSA<TKN> > > m_domainI2; // I2 indexes, separately for each domain
+  public:
+    std::vector<SPTR<TSA<TKN> > > domainI1; // I1 indexes, separately for each domain
+    std::vector<SPTR<TSA<TKN> > > domainI2; // I2 indexes, separately for each domain
   };
 
   template<typename TKN>
@@ -112,8 +115,8 @@ namespace sapt
       mmTSA<TKN>& i2 = *reinterpret_cast<mmTSA<TKN>*>(di2.get());
       i1.open(idx1, this->T1);
       i2.open(idx2, this->T2);
-      m_domainI1.push_back(di1);
-      m_domainI2.push_back(di2);
+      domainI1.push_back(di1);
+      domainI2.push_back(di2);
     }
   }
 }

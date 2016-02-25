@@ -96,6 +96,15 @@ namespace sapt
                char const* stopRange,
                float fraction) const = 0;
 
+    /** @return an index position idx between
+     *  /startRange/ and /endRange/.
+     */
+    virtual
+    char const*
+      index_jump_precise(char const* startRange,
+                         char const* stopRange,
+                         size_t idx) const { assert(false); return NULL; /* override as needed. */ }
+
     /** return the index position of the first item that
      *  is equal to or includes [refStart,refStart+refLen) as a prefix
      */
