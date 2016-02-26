@@ -22,6 +22,8 @@
 #include "util/string_piece.hh"
 #include "FeatureDataIterator.h"
 
+#include <boost/scoped_ptr.hpp>
+
 using namespace std;
 
 namespace MosesTuning
@@ -291,9 +293,9 @@ void Data::createShards(size_t shard_count, float shard_size, const string& scor
       }
     }
 
-    Scorer* scorer = ScorerFactory::getScorer(m_score_type, scorerconfig);
+    boost::scoped_ptr<Scorer> scorer(ScorerFactory::getScorer(m_score_type, scorerconfig));
 
-    shards.push_back(Data(scorer));
+    shards.push_back(Data(scorer.get()));
     shards.back().m_score_type = m_score_type;
     shards.back().m_num_scores = m_num_scores;
     for (size_t i = 0; i < shard_contents.size(); ++i) {
