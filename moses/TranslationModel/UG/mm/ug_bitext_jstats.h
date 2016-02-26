@@ -3,7 +3,7 @@
 #include <string>
 #include <stdint.h>
 #include "ug_typedefs.h"
-#include "ug_lexical_reordering.h"m
+#include "ug_lexical_reordering.h"
 // for struct phrase
 #include "ug_ttrack_base.h"
 #include <boost/thread.hpp>
