@@ -538,9 +538,9 @@ BitextSampler(SPTR<Bitext<Token> const> const& bitext,
 
   m_next = mfix.lower_bound(-1);
   m_stop = mfix.upper_bound(-1);
-  m_num_occurrences = (size_t) mfix.ca();
+  m_num_occurrences = (size_t) mfix.rawCnt();
 
-  m_stats->raw_cnt = mfix.rawCnt(); // .ca();
+  m_stats->raw_cnt = mfix.rawCnt();
 }
   
 template<typename Token>
