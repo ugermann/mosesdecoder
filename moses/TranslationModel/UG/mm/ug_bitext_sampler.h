@@ -159,17 +159,22 @@ private:
     //size_t good_target = good_before + samples; // should always be m_samples here.
 
     typename TSA<Token>::tree_iterator mfix(i1.get(), reinterpret_cast<const Token*>(m_phrase.data()), m_phrase.size());
+
+    // check if we found anything at all (at least the first word) -- otherwise, rawCnt() fails.
+    if(mfix.size() == 0)
+      return 0;
+
     size_t occurrences = mfix.rawCnt();
 
     std::vector<size_t> sampleIndices;
     // generate sample indices
-    random_indices(samples, occurrences, m_rnd, sampleIndices);
+    random_indices(std::min(samples, occurrences), occurrences, m_rnd, sampleIndices);
 
     //while(m_stats->good < good_target) {
     std::vector<size_t>::iterator it;
     for(it = sampleIndices.begin(); it != sampleIndices.end(); it++) {
       // to do: nicer random access syntax?
-      sapt::tsa::ArrayEntry I(mfix.index_jump_precise(*it));
+      sapt::tsa::ArrayEntry I(i1.get(), mfix.index_jump_precise(*it));
       consider_sample(I, i1, i2);
     }
 
@@ -541,6 +546,7 @@ BitextSampler(BitextSampler const& other)
   , m_min_samples(other.m_min_samples)
   , m_num_occurrences(other.m_num_occurrences)
   , m_rnd(0)
+  , m_phrase(other.m_phrase)
 {
   // lock both instances
   boost::unique_lock<boost::mutex> mylock(m_lock);
