@@ -141,11 +141,20 @@ private:
 
     size_t needSamples = m_samples; // remaining samples to be collected
 
+    XVERBOSE(2, "ranked3: sampling for '" << bitext.V1->toString(m_phrase) << "' len=" << m_phrase.size() << "\n");
+
     // in descending order of score, collect samples from each domain
     std::vector<std::pair<float, id_type> >::iterator it;
     for(it = domScores.begin(); needSamples > 0 && it != domScores.end(); it++) {
       id_type idom = it->second;
-      needSamples -= ranked3_collect(needSamples, bitext.domainI1[idom], bitext.domainI2[idom]);
+      size_t collected = ranked3_collect(needSamples, bitext.domainI1[idom], bitext.domainI2[idom]);
+      XVERBOSE(2, "  ranked3: domain " << idom << " collected " << collected << " samples\n");
+      needSamples -= collected;
+    }
+
+    // sanity check: any samples collected? (we should never have been called otherwise)
+    if(needSamples == m_samples) {
+      XVERBOSE(1, std::cerr << "warning: ranked3: '" << bitext.V1->toString(m_phrase) << "' looked up, but no samples found.\n");
     }
 
     return 0; // nobody actually uses this.  AFAICT, this should be number of attempted samples.
@@ -161,10 +170,14 @@ private:
     typename TSA<Token>::tree_iterator mfix(i1.get(), reinterpret_cast<const Token*>(m_phrase.data()), m_phrase.size());
 
     // check if we found anything at all (at least the first word) -- otherwise, rawCnt() fails.
-    if(mfix.size() == 0)
+    if(mfix.size() == 0) {
+      XVERBOSE(2, "  ranked3: ranked3_collect() found 0 occurrences\n");
       return 0;
+    }
 
     size_t occurrences = mfix.rawCnt();
+
+    XVERBOSE(2, "  ranked3: ranked3_collect() found " << occurrences << " occurrences\n");
 
     std::vector<size_t> sampleIndices;
     // generate sample indices
