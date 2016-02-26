@@ -238,15 +238,8 @@ namespace sapt
   mmTSA<TOKEN>::
   rawCnt(char const* p, char const* const q) const
   {
-    id_type sid; offset_type off;
-    size_t ret=0;
-    while (p < q)
-      {
-	p = tpt::numread(p,sid);
-	p = tpt::numread(p,off);
-	ret++;
-      }
-    return ret;
+    size_t ret = (q - p) / (sizeof(id_type) + sizeof(offset_type));
+    return (count_type) ret;
   }
 
   // ======================================================================
