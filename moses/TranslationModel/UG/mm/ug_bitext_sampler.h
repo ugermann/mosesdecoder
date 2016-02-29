@@ -7,6 +7,7 @@
 #include <boost/thread.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/unordered_set.hpp>
 #include <boost/math/distributions/binomial.hpp>
 
 #include "ug_bitext.h"
@@ -137,20 +138,37 @@ private:
     assert(bitext.domainI1.size() > 0); // rudimentary check for presence of domain indexes
 
     std::vector<std::pair<float, id_type> > domScores;
+    boost::unordered_set<id_type> domUsed;
+    // get bias-ranked order of domains to sample (only the ones mentioned by bias server)
     domBias.getRankedBias(domScores);
 
     size_t needSamples = m_samples; // remaining samples to be collected
 
     XVERBOSE(2, "ranked3: sampling for '" << bitext.V1->toString(m_phrase) << "' len=" << m_phrase.size() << "\n");
 
-    // in descending order of score, collect samples from each domain
+    // in descending order of score, collect samples from each mentioned domain
     std::vector<std::pair<float, id_type> >::iterator it;
     for(it = domScores.begin(); needSamples > 0 && it != domScores.end(); it++) {
       id_type idom = it->second;
+      domUsed.insert(idom);
+
       size_t collected = ranked3_collect(needSamples, bitext.domainI1[idom], bitext.domainI2[idom]);
       XVERBOSE(2, "  ranked3: domain " << idom << " collected " << collected << " samples\n");
       needSamples -= collected;
     }
+
+    // for any remaining samples needed, sample uniformly from the remaining, unmentioned domains
+    std::vector<id_type> remainingDomains;
+    for(id_type idom = 0; idom < bitext.domainCount(); idom++) {
+      // skip domains already collected from
+      if(domUsed.find(idom) != domUsed.end())
+        continue;
+      remainingDomains.push_back(idom);
+    }
+
+    size_t collected = uniform_collect(needSamples, remainingDomains);
+    XVERBOSE(2, "  ranked3: remaining domains collected " << collected << " samples\n");
+    needSamples -= collected;
 
     // sanity check: any samples collected? (we should never have been called otherwise)
     if(needSamples == m_samples) {
@@ -161,7 +179,64 @@ private:
   }
 
   /**
+   * Try to collect samples from the given domains, and return actual amount collected.
+   * Collects min(samples, total_occurrences) randomly from the entire range of domains specified.
+   */
+  size_t uniform_collect(size_t samples, const std::vector<id_type>& domains) {
+    // collect total_occurrences
+    // generate sample indices
+    // consider samples
+
+    // to do: static assert: bitext is convertible to mmBitext (Mmsapt only uses BitextSampler on mmBitext)
+    const mmBitext<Token>& bitext = reinterpret_cast<const mmBitext<Token>&>(*m_bitext);
+    //SPTR<TSA<Token> > i1 = bitext.domainI1[0];
+    //SPTR<TSA<Token> > i2 = bitext.domainI2[0];
+
+    // collect total occurrences, locations and count distribution
+    size_t totalOccurrences = 0;
+    std::vector<typename TSA<Token>::tree_iterator> domainPhraseLocations;
+    std::vector<size_t> domainBegin;
+    std::vector<id_type>::const_iterator it;
+    for(it = domains.begin(); it != domains.end(); it++) {
+      SPTR<TSA<Token> > i1 = bitext.domainI1[*it];
+      typename TSA<Token>::tree_iterator phraseLocations(i1.get(), reinterpret_cast<const Token*>(m_phrase.data()), m_phrase.size());
+      domainPhraseLocations.push_back(phraseLocations);
+      domainBegin.push_back(totalOccurrences);
+      totalOccurrences += phraseLocations.rawCnt();
+    }
+    domainBegin.push_back(totalOccurrences); // trailing sentinel
+
+    // generate sample indices (among all domains)
+    std::vector<size_t> sampleIndices;
+    random_indices(std::min(samples, totalOccurrences), totalOccurrences, m_rnd, sampleIndices);
+
+    // consider samples
+    // (generated indices point into the concatenation of locations found in all 'domains', in order)
+    std::vector<size_t>::iterator is;
+    SPTR<TSA<Token> > i1 = bitext.domainI1[0];
+    SPTR<TSA<Token> > i2 = bitext.domainI2[0];
+    id_type idomLocal = 0; // indexes 'domains' (only the ones being under consideration for sampling)
+    for(is = sampleIndices.begin(); is != sampleIndices.end(); is++) {
+      if(*is >= domainBegin[idomLocal+1]) {
+        // walk to samples from next domain
+        idomLocal++;
+        i1 = bitext.domainI1[domains[idomLocal]];
+        i2 = bitext.domainI2[domains[idomLocal]];
+      }
+
+      size_t isample = *is - domainBegin[idomLocal]; // sample index into this specific domain
+      // to do: nicer random access syntax?
+      sapt::tsa::ArrayEntry I(i1.get(), domainPhraseLocations[idomLocal].index_jump_precise(isample));
+
+      // extract the sample, if possible
+      consider_sample(I, i1, i2);
+    }
+  }
+
+  /**
    * Try to collect samples from given domain, and return actual amount collected there.
+   * Collects min(samples, occurrences) randomly.
+   * TODO: this is just a special case of uniform_collect().
    */
   size_t ranked3_collect(size_t samples, SPTR<TSA<Token> > i1, SPTR<TSA<Token> > i2) {
     size_t good_before = m_stats->good;
@@ -170,10 +245,13 @@ private:
     typename TSA<Token>::tree_iterator mfix(i1.get(), reinterpret_cast<const Token*>(m_phrase.data()), m_phrase.size());
 
     // check if we found anything at all (at least the first word) -- otherwise, rawCnt() fails.
+    // now FIXED rawCnt(). (in ug_tsa_tree_iterator.h)
+    /*
     if(mfix.size() == 0) {
       XVERBOSE(2, "  ranked3: ranked3_collect() found 0 occurrences\n");
       return 0;
     }
+    */
 
     size_t occurrences = mfix.rawCnt();
 

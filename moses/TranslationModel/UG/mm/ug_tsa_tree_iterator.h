@@ -58,7 +58,7 @@ namespace sapt
     // TO BE DONE: make the pointer private and add a const function
     // to return the pointer
 
-    // TSA_tree_iterator(TSA_tree_iterator const& other);
+    TSA_tree_iterator(TSA_tree_iterator const& other);
     TSA_tree_iterator(TSA<Token> const* s);
     TSA_tree_iterator(TSA<Token> const* s, TSA_tree_iterator<Token> const& other);
     TSA_tree_iterator(TSA<Token> const* r, id_type const* s, size_t const len);
@@ -284,6 +284,12 @@ namespace sapt
   //----------------------------------------------------------------------------
   template<typename Token>
   TSA_tree_iterator<Token>::
+  TSA_tree_iterator(TSA_tree_iterator<Token> const& other)
+    : lower(other.lower), upper(other.upper), root(other.root)
+  {};
+
+  template<typename Token>
+  TSA_tree_iterator<Token>::
   TSA_tree_iterator(TSA<Token> const* s)
     : root(s)
   {};
@@ -500,6 +506,8 @@ namespace sapt
   TSA_tree_iterator<Token>::
   rawCnt(int p) const
   {
+    if(lower.size() == 0)
+      return 0;
     if (p < 0) p += lower.size();
     assert(p>=0);
     if (lower.size() == 0) return root->getCorpusSize();
