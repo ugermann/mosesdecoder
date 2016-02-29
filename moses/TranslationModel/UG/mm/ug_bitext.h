@@ -223,6 +223,8 @@ namespace sapt
     
     std::vector<id_type> const* sid2did() const;
     int sid2did(uint32_t sid) const;
+
+    id_type domainCount() const;
   };
 
   #include "ug_bitext_agenda.h"
@@ -276,6 +278,14 @@ namespace sapt
     if (m_sid2docid) 
       return m_sid2docid->at(sid);
     return -1;
+  }
+
+  template<typename Token>
+  id_type
+  Bitext<Token>::
+  domainCount() const
+  {
+    return m_docname.size();
   }
 
 
