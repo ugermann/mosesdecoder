@@ -130,17 +130,25 @@ private:
   size_t
   perform_ranked_sampling3()
   {
+    //UTIL_THROW_IF2(m_bias.get() == NULL, "ranked3 sampling without any bias weights.");
+    if(m_bias.get() == NULL) {
+      XVERBOSE(1, "warning: ranked3: no bias weights given, falling back to uniform random sampling.");
+    }
+
     // to do: static assert: bitext is convertible to mmBitext (Mmsapt only uses BitextSampler on mmBitext)
     const mmBitext<Token>& bitext = reinterpret_cast<const mmBitext<Token>&>(*m_bitext);
-    // to do: static assert: convertible to document bias
-    const DocumentBias& domBias = reinterpret_cast<const DocumentBias&>(*m_bias);
 
     assert(bitext.domainI1.size() > 0); // rudimentary check for presence of domain indexes
 
     std::vector<std::pair<float, id_type> > domScores;
     boost::unordered_set<id_type> domUsed;
+
     // get bias-ranked order of domains to sample (only the ones mentioned by bias server)
-    domBias.getRankedBias(domScores);
+    if(m_bias.get() != NULL) {
+      // to do: static assert: convertible to document bias
+      const DocumentBias& domBias = reinterpret_cast<const DocumentBias&>(*m_bias);
+      domBias.getRankedBias(domScores);
+    }
 
     size_t needSamples = m_samples; // remaining samples to be collected
 
