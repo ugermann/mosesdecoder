@@ -141,6 +141,7 @@ void finiMAM(ofstream& out, vector<id_type>& idx, id_type numTok)
   tpt::numwrite(out,id_type(idx.size()-1));
   tpt::numwrite(out,numTok);
   out.close();
+  cout << (idx.size() - 1) << endl; // -1: account for idxm.push_back(mam.tellp()) and only print #sents
 }
 
 void
@@ -194,7 +195,6 @@ go()
 	cerr << ctr/1000 << "K lines processed" << endl;
     }
   finiMAM(mam,idxm,0);
-  cout << idxm.size() << endl;
 }
 
 template<typename TKN>
@@ -268,7 +268,6 @@ go(string t1name, string t2name, string A3filename)
       finalize(t2out,idx2,tokenCount2);
     }
   finiMAM(mam,idxm,0);
-  cout << idxm.size() << endl;
 }
 
 void
