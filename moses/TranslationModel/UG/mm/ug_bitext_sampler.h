@@ -183,6 +183,9 @@ private:
    * Collects min(samples, total_occurrences) randomly from the entire range of domains specified.
    */
   size_t uniform_collect(size_t samples, const std::vector<id_type>& domains) {
+    if(domains.size() == 0)
+      return 0;
+
     size_t good_before_total = m_stats->good;
     // collect total_occurrences
     // generate sample indices
@@ -217,6 +220,7 @@ private:
     // (generated indices point into the concatenation of locations found in all 'domains', in order)
     std::vector<size_t>::iterator is;
     id_type idomLocal = 0; // indexes 'domains' (only the ones being under consideration for sampling)
+    assert(domains.size() > 0);
     SPTR<TSA<Token> > i1 = bitext.domainI1[domains[idomLocal]];
     SPTR<TSA<Token> > i2 = bitext.domainI2[domains[idomLocal]];
     size_t good_before = m_stats->good;
