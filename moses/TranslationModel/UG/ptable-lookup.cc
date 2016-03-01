@@ -67,6 +67,10 @@ int main(int argc, char const* argv[])
 
   // CONTEXT WEIGHTS, via moses.ini or cmdline option
 
+  // global scope of caches, biases, etc., if any
+  boost::shared_ptr<ContextScope> gscope;
+  gscope.reset(new ContextScope);
+
   // ... or weights for documents/domains from config file / cmd. line
   std::string context_weights;
   params.SetParameter(context_weights,"context-weights",string(""));
@@ -80,7 +84,8 @@ int main(int argc, char const* argv[])
       boost::shared_ptr<Sentence> phrase(new Sentence(global.options()));
       if (!phrase->Read(cin)) break;
       boost::shared_ptr<TranslationTask> ttask;
-      ttask = TranslationTask::create(phrase);
+      boost::shared_ptr<IOWrapper> ioWrapper;
+      ttask = TranslationTask::create(phrase, ioWrapper, gscope);
 
       if (context_weights != "" && !ttask->GetScope()->GetContextWeights())
         ttask->GetScope()->SetContextWeights(context_weights);
