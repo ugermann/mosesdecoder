@@ -10,6 +10,7 @@
 #include "util/exception.hh"
 #include "moses/Util.h"
 #include "util/random.hh"
+#include "util/murmur_hash.hh"
 
 namespace sapt
 {
@@ -81,7 +82,9 @@ namespace sapt
     // Token const& wid(int p) const;
     Token const* getToken(int p) const;
     size_t rawCnt(int p=-1) const;
-    uint64_t getPid(int p=-1) const; // get phrase id
+
+    /** Get phrase ID, unique for distinct phrases (even across domain TSA indexes). Useful as a map key. */
+    uint64_t getPid() const;
 
     virtual bool extend(Token const& id);
     virtual bool extend(id_type id);
@@ -421,17 +424,26 @@ namespace sapt
   template<typename Token>
   ::uint64_t
   TSA_tree_iterator<Token>::
-  getPid(int p) const
+  getPid() const
   {
+    int p = -1;
     if (this->size() == 0) return 0;
-    if (p < 0) p += upper.size();
-    char const* lb = lower_bound(p);
-    char const* ub = upper_bound(p);
-    tpt::id_type sid;
-    tpt::offset_type off;
-    root->readOffset(root->readSid(lb,ub,sid),ub,off);
-    ::uint64_t ret = (uint64_t(sid)<<32) + (uint64_t(off)<<16) + ::uint64_t(p+1);
-    return ret;
+
+    tsa::ArrayEntry A(root,lower.back());
+    Token const* t   = root->corpus->getToken(A); assert(t);
+    //Token const* bos = root->corpus->sntStart(A.sid);
+    //Token const* eos = root->corpus->sntEnd(A.sid);
+
+    if (p < 0) p += this->size();
+    // cerr << p << ". " << t->id() << std::endl;
+
+    // a bit besides the point for our templated self, but I want to be sure.
+    assert(sizeof(id_type) == sizeof(Token));
+
+    // p: phrase length - 1?? (originally a word counter into the phrase??)
+
+    // note: this makes a hard assumption about a consecutive memory layout of corpus track tokens.
+    return util::MurmurHash64A(t, sizeof(Token) * size_t(p+1));
   }
 
   // ---------------------------------------------------------------------------
