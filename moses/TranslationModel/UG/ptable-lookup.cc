@@ -65,6 +65,15 @@ int main(int argc, char const* argv[])
       exit(1);
     }
 
+  // CONTEXT WEIGHTS, via moses.ini or cmdline option
+
+  // ... or weights for documents/domains from config file / cmd. line
+  std::string context_weights;
+  params.SetParameter(context_weights,"context-weights",string(""));
+
+  // CONTEXT WEIGHTS END
+
+
   string line;
   while (true)
     {
@@ -72,6 +81,10 @@ int main(int argc, char const* argv[])
       if (!phrase->Read(cin)) break;
       boost::shared_ptr<TranslationTask> ttask;
       ttask = TranslationTask::create(phrase);
+
+      if (context_weights != "" && !ttask->GetScope()->GetContextWeights())
+        ttask->GetScope()->SetContextWeights(context_weights);
+
       PT->InitializeForInput(ttask);
       
       Phrase const& p = *phrase;
