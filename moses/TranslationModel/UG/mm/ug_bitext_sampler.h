@@ -221,9 +221,10 @@ private:
     SPTR<TSA<Token> > i2 = bitext.domainI2[domains[idomLocal]];
     size_t good_before = m_stats->good;
     for(is = sampleIndices.begin(); is != sampleIndices.end(); is++) {
-      if(*is >= domainBegin[idomLocal+1]) {
-        // walk to samples from next domain
+      while(*is >= domainBegin[idomLocal+1]) {
+        // walk to samples from next domain (potentially several times, for length 0 domains)
         idomLocal++;
+        assert(idomLocal < domains.size());
         i1 = bitext.domainI1[domains[idomLocal]];
         i2 = bitext.domainI2[domains[idomLocal]];
 
