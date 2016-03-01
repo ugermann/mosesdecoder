@@ -183,6 +183,7 @@ private:
    * Collects min(samples, total_occurrences) randomly from the entire range of domains specified.
    */
   size_t uniform_collect(size_t samples, const std::vector<id_type>& domains) {
+    size_t good_before_total = m_stats->good;
     // collect total_occurrences
     // generate sample indices
     // consider samples
@@ -203,8 +204,10 @@ private:
       domainPhraseLocations.push_back(phraseLocations);
       domainBegin.push_back(totalOccurrences);
       totalOccurrences += phraseLocations.rawCnt();
+      XVERBOSE(2, "  ranked3 uniform_collect(): domain " << *it << " found " << phraseLocations.rawCnt() << " raw occurrences\n");
     }
     domainBegin.push_back(totalOccurrences); // trailing sentinel
+    XVERBOSE(1, "  ranked3 uniform_collect(): found " << totalOccurrences << " raw occurrences in total\n");
 
     // generate sample indices (among all domains)
     std::vector<size_t> sampleIndices;
@@ -216,21 +219,30 @@ private:
     SPTR<TSA<Token> > i1 = bitext.domainI1[0];
     SPTR<TSA<Token> > i2 = bitext.domainI2[0];
     id_type idomLocal = 0; // indexes 'domains' (only the ones being under consideration for sampling)
+    size_t good_before = m_stats->good;
     for(is = sampleIndices.begin(); is != sampleIndices.end(); is++) {
       if(*is >= domainBegin[idomLocal+1]) {
         // walk to samples from next domain
         idomLocal++;
         i1 = bitext.domainI1[domains[idomLocal]];
         i2 = bitext.domainI2[domains[idomLocal]];
+
+        size_t found = m_stats->good - good_before;
+        XVERBOSE(2, "  ranked3 uniform_collect(): domain " << domains[(idomLocal - 1)] << " found " << found << " samples\n");
+        good_before = m_stats->good;
       }
 
       size_t isample = *is - domainBegin[idomLocal]; // sample index into this specific domain
+      assert(isample < domainBegin[idomLocal+1]);
+      assert( ((long long int)(*is)) - ((long long int)(domainBegin[idomLocal])) >= 0 );
       // to do: nicer random access syntax?
       sapt::tsa::ArrayEntry I(i1.get(), domainPhraseLocations[idomLocal].index_jump_precise(isample));
 
       // extract the sample, if possible
       consider_sample(I, i1, i2);
     }
+
+    return m_stats->good - good_before_total;
   }
 
   /**
@@ -255,7 +267,7 @@ private:
 
     size_t occurrences = mfix.rawCnt();
 
-    XVERBOSE(2, "  ranked3: ranked3_collect() found " << occurrences << " occurrences\n");
+    XVERBOSE(2, "  ranked3: ranked3_collect() found " << occurrences << " raw occurrences\n");
 
     std::vector<size_t> sampleIndices;
     // generate sample indices
