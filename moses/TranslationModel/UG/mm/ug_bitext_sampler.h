@@ -216,9 +216,9 @@ private:
     // consider samples
     // (generated indices point into the concatenation of locations found in all 'domains', in order)
     std::vector<size_t>::iterator is;
-    SPTR<TSA<Token> > i1 = bitext.domainI1[0];
-    SPTR<TSA<Token> > i2 = bitext.domainI2[0];
     id_type idomLocal = 0; // indexes 'domains' (only the ones being under consideration for sampling)
+    SPTR<TSA<Token> > i1 = bitext.domainI1[domains[idomLocal]];
+    SPTR<TSA<Token> > i2 = bitext.domainI2[domains[idomLocal]];
     size_t good_before = m_stats->good;
     for(is = sampleIndices.begin(); is != sampleIndices.end(); is++) {
       if(*is >= domainBegin[idomLocal+1]) {
