@@ -323,9 +323,10 @@ private:
       nbest.add(I);
     }
 
-    // find upper end of threshold (not sure what 'upper end' means in heap of nbest)
+    // find score threshold for worst samples
     float th = (*m_bias)[nbest.get_unsorted(0).sid];
     size_t stop = nbest.size();
+    // count others in nbest with the same lower threshold score as the tied candidates
     while (stop && (*m_bias)[nbest[stop-1].sid] == th) --stop;
     tied += nbest.size() - stop;
 
@@ -342,14 +343,17 @@ private:
     for (size_t i=0,k; i < stop && max_joint < good_enough; i = k)
     {
       float s = (*m_bias)[nbest[i].sid];
+      // find k for [i,k) a block of samples with the same score (one domain)
       for (k = i+1; k < stop && (*m_bias)[nbest[k].sid] == s; ++k);
+      // if entire block would fit, consider all occurrences
       if (m_stats->good + k - i <= m_samples)
-      { // consider all occurrences
+      {
         for (; i < k; ++i)
           max_joint = std::max(max_joint, consider_sample(nbest[i]));
       }
       else
       {
+        // otherwise, sample from block
         for (; i < k; ++i)
         {
           size_t random_number  = (k-i) * (m_rnd()/(m_rnd.max()+1.));
