@@ -257,7 +257,7 @@ private:
    */
   size_t ranked3_collect(size_t samples, SPTR<TSA<Token> > i1, SPTR<TSA<Token> > i2) {
     size_t good_before = m_stats->good;
-    //size_t good_target = good_before + samples; // should always be m_samples here.
+    size_t good_target = good_before + samples; // should always be m_samples here.
 
     typename TSA<Token>::tree_iterator mfix(i1.get(), reinterpret_cast<const Token*>(m_phrase.data()), m_phrase.size());
 
@@ -276,7 +276,8 @@ private:
 
     std::vector<size_t> sampleIndices;
     // generate sample indices
-    random_indices(std::min(samples, occurrences), occurrences, m_rnd, sampleIndices);
+    // (over-sample raw occurrences, so we may end up with enough good samples)
+    random_indices(std::min(2*samples, occurrences), occurrences, m_rnd, sampleIndices);
 
     //while(m_stats->good < good_target) {
     std::vector<size_t>::iterator it;
@@ -284,6 +285,9 @@ private:
       // to do: nicer random access syntax?
       sapt::tsa::ArrayEntry I(i1.get(), mfix.index_jump_precise(*it));
       consider_sample(I, i1, i2);
+      // found enough samples? (necessary due to over-sampling raw occurrences)
+      if(m_stats->good >= good_target)
+        break;
     }
 
     return m_stats->good - good_before;
