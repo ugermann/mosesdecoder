@@ -41,6 +41,8 @@ namespace sapt
     float    bcnt() const; // cumulative bias scores
     phrase<id_type> const& trg() const; // target phrase
 
+    void setCnt2(uint32_t cnt2) { my_cnt2 = cnt2; }
+
     std::vector<std::pair<size_t, std::vector<unsigned char> > > const & aln() const;
 
     size_t 
