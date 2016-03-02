@@ -37,13 +37,6 @@ namespace sapt
     return buf.str();
   }
 
-  size_t 
-  len_from_pid(uint64_t pid)
-  {
-    static uint64_t two16 = uint64_t(1)<<16;
-    return pid%two16;
-  }
-
 #if 0
   template<>
   string
