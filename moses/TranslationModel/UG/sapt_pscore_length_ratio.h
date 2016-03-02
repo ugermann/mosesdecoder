@@ -54,8 +54,8 @@ namespace sapt  {
       if (!dest) dest = &pp.fvals;
       float p  = float(bt.T1->numTokens());
       p /= bt.T1->numTokens() + bt.T2->numTokens();
-      float len1 = sapt::len_from_pid(pp.p1);
-      float len2 = sapt::len_from_pid(pp.p2);
+      float len1 = pp.len1;
+      float len2 = pp.len2;
 	
       boost::math::binomial binomi(len1 + len2, p);
       float& x = (*dest)[this->m_index];
