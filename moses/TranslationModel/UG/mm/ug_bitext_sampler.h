@@ -794,8 +794,6 @@ consider_sample(TokenPosition const& p, SPTR<TSA<Token> > i1, SPTR<TSA<Token> > 
       SPTR<tsa_iter> b = I.find(o + s, rec.e1 - s);
       UTIL_THROW_IF2(!b || b->size() < rec.e1 - s, "target phrase not found");
 
-      phrase<Token> trg(o + s, rec.e1 - s);
-
       for (size_t i = rec.e1; i <= rec.e2; ++i)
         {
           uint64_t tpid = b->getPid();
@@ -803,6 +801,7 @@ consider_sample(TokenPosition const& p, SPTR<TSA<Token> > i1, SPTR<TSA<Token> > 
             continue; // don't over-count
           seen.push_back(tpid);
           size_t raw2 = b->approxOccurrenceCount();
+          phrase<Token> trg(o + s, i - s);
           size_t evid = m_stats->add(tpid, (phrase<id_type> &) trg, sample_weight,
                                      m_bias ? (*m_bias)[p.sid] : 1, 
                                      aln, raw2, rec.po_fwd, rec.po_bwd, docid);
