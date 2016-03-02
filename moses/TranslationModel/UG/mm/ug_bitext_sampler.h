@@ -183,6 +183,18 @@ private:
       XVERBOSE(1, std::cerr << "warning: ranked3: '" << bitext.V1->toString(m_phrase) << "' looked up, but no samples found.\n");
     }
 
+
+    // fix up raw2: these were being overwritten by individual domains' target side raw counts
+    // for now, use global index raw2, just like the original ranked sampling
+    pstats::trg_map_t::iterator i;
+    for(i = m_stats->trg.begin(); i != m_stats->trg.end(); i++) {
+      jstats& js = i->second;
+      assert(m_fwd); // for usage of I2 below
+      typename TSA<Token>::tree_iterator target_iter(m_bitext->I2.get(),reinterpret_cast<const Token*>(js.trg().begin),js.trg().len);
+      js.setCnt2(target_iter.rawCnt());
+    }
+
+
     return 0; // nobody actually uses this.  AFAICT, this should be number of attempted samples.
   }
 
@@ -646,6 +658,7 @@ BitextSampler(SPTR<Bitext<Token> const> const& bitext,
   m_stats->raw_cnt = phrase.ca();
   m_stats->register_worker();
 
+  assert(m_fwd); // for usage of I1 below
   typename TSA<Token>::tree_iterator mfix(m_bitext->I1.get(),reinterpret_cast<const Token*>(phrase.data()),phrase.size());
 
   m_next = mfix.lower_bound(-1);
