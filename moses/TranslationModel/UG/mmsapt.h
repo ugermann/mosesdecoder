@@ -100,7 +100,7 @@ namespace Moses
     void* const  context_key; // for context scope from ttask
   private:
     boost::shared_ptr<sapt::SamplingBias> m_bias; // for global default bias
-    boost::shared_ptr<TPCollCache> m_cache; // for global default bias
+    boost::shared_ptr<TPCollCache> m_cache; // for global default bias (otherwise, cache stored in ContextScope of ttask -David)
     size_t m_cache_size;  //
     // size_t input_factor;  //
     // size_t output_factor; // we can actually return entire Tokens!

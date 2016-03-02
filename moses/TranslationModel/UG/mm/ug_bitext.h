@@ -109,7 +109,6 @@ namespace sapt
     typedef TKN Token;
     typedef typename TSA<Token>::tree_iterator   iter;
     typedef typename std::vector<PhrasePair<Token> > vec_ppair;
-    typedef typename lru_cache::LRU_Cache<uint64_t, vec_ppair> pplist_cache_t;
     typedef TSA<Token> tsa;
     friend class Moses::Mmsapt;
   protected:
@@ -121,15 +120,11 @@ namespace sapt
 
     size_t m_default_sample_size;
     size_t m_pstats_cache_threshold; // threshold for caching sampling results
-    SPTR<pstats::cache_t> m_cache1, m_cache2; // caches for sampling results
+    SPTR<pstats::cache_t> m_cache1, m_cache2; // caches for sampling results (only ever used for dyn bitext -David)
 
     std::vector<std::string> m_docname;
     std::map<std::string,id_type>  m_docname2docid; // maps from doc names to ids
     SPTR<std::vector<id_type> >   m_sid2docid; // maps from sentences to docs (ids)
-
-    mutable pplist_cache_t m_pplist_cache1, m_pplist_cache2;
-    // caches for unbiased sampling; biased sampling uses the caches that
-    // are stored locally on the translation task
 
   public:
     SPTR<Ttrack<char> >  Tx; // word alignments
@@ -159,10 +154,12 @@ namespace sapt
 
     // prep2 launches sampling and returns immediately.
     // lookup (below) waits for the job to finish before it returns
+    // (only ever used for dyn bitext -David)
     SPTR<pstats>
     prep2(iter const& phrase, int max_sample = -1) const;
 
 #ifndef NO_MOSES
+    // (only ever used for dyn bitext -David)
     SPTR<pstats>
     prep2(ttasksptr const& ttask, iter const& phrase, int max_sample = -1) const;
 #endif 
@@ -183,12 +180,14 @@ namespace sapt
     SPTR<pstats> 
     lookup(iter const& phrase, int max_sample = -1) const;
 
+    // (only ever used for dyn bitext -David)
     void prep(iter const& phrase) const;
 
 #ifndef NO_MOSES
     SPTR<pstats>
     lookup(ttasksptr const& ttask, iter const& phrase, int max_sample = -1) const;
 
+    // (only ever used for dyn bitext -David)
     void prep(ttasksptr const& ttask, iter const& phrase) const;
 #endif
 
@@ -552,7 +551,8 @@ namespace sapt
   }
 
 
-
+  // (only ever used for dyn bitext -David)
+  //
   // prep2 schedules a phrase for sampling, and returns immediately
   // the member function lookup retrieves the respective pstats instance
   // and waits until the sampling is finished before it returns.
