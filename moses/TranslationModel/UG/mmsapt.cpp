@@ -693,8 +693,10 @@ namespace Moses
     SPTR<ContextScope> const& scope = ttask->GetScope();
     SPTR<TPCollCache> cache = scope->get<TPCollCache>(cache_key);
     if (!cache) cache = m_cache; // no context-specific cache, use global one
-      
+
+    // get phrasekey from the cache, or create a new cache entry.
     ret = cache->get(phrasekey, dyn->revision());
+
     // TO DO: we should revise the revision mechanism: we take the
     // length of the dynamic bitext (in sentences) at the time the PT
     // entry was stored as the time stamp. For each word in the
