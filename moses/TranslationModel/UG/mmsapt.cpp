@@ -579,7 +579,7 @@ namespace Moses
           zilch.raw2 = m.approxOccurrenceCount();
         pool += zilch;
         BOOST_FOREACH(SPTR<pscorer> const& ff, m_active_ff_fix)
-          (*ff)(*dynbt, ff->allowPooling() ? pool : zilch, &fvals);
+          (*ff)(*btfix, ff->allowPooling() ? pool : zilch, &fvals);
       }
     if (fix)
       {
