@@ -98,7 +98,7 @@ namespace sapt
     std::map<id_type, float>::const_iterator it;
     for(it = m_bias.begin(); it != m_bias.end(); it++)
       bias.push_back(std::make_pair(it->second, it->first));
-    std::sort(bias.begin(), bias.end());
+    std::sort(bias.begin(), bias.end(), std::greater<std::pair<float, id_type> >()); // sort descending
   }
 
   void
