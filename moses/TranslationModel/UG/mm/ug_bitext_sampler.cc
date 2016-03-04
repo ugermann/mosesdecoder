@@ -184,7 +184,7 @@ namespace sapt {
     std::vector<size_t> sampleIndices;
     // generate sample indices
     // (over-sample raw occurrences, so we may end up with enough good samples)
-    random_indices(std::min(2*samples, occurrences), occurrences, m_rnd, sampleIndices);
+    random_indices(std::min(samples, occurrences), occurrences, m_rnd, sampleIndices);
 
     //while(m_stats->good < good_target) {
     std::vector<size_t>::iterator it;
@@ -193,8 +193,8 @@ namespace sapt {
       sapt::tsa::ArrayEntry I(i1.get(), mfix.index_jump_precise(*it));
       consider_sample(I, i1, i2);
       // found enough samples? (necessary due to over-sampling raw occurrences)
-      if(m_stats->good >= good_target)
-        break;
+      //if(m_stats->good >= good_target)
+      //  break;
     }
 
     return m_stats->good - good_before;
