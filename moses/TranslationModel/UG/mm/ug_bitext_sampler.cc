@@ -3,9 +3,7 @@
 #include "ug_bitext_sampler.h"
 
 namespace sapt {
-
-
-// ranked sampling on individual domain indexes
+  // ranked sampling on individual domain indexes
   template<typename Token>
   size_t
   BitextSampler<Token>::
@@ -84,7 +82,7 @@ namespace sapt {
     return 0; // nobody actually uses this.  AFAICT, this should be number of attempted samples.
   }
 
-/**
+  /**
    * Try to collect samples from the given domains, and return actual amount collected.
    * Collects min(samples, total_occurrences) randomly from the entire range of domains specified.
    */
@@ -160,54 +158,6 @@ namespace sapt {
 
     return m_stats->good - good_before_total;
   }
-
-  /**
-   * Try to collect samples from given domain, and return actual amount collected there.
-   * Collects min(samples, occurrences) randomly.
-   * TODO: this is just a special case of uniform_collect().
-   */
-/*
-  template<typename Token>
-  size_t
-  BitextSampler<Token>::
-  ranked3_collect(size_t samples, SPTR<TSA<Token> > i1, SPTR<TSA<Token> > i2) {
-    size_t good_before = m_stats->good;
-    size_t good_target = good_before + samples; // should always be m_samples here.
-
-    typename TSA<Token>::tree_iterator mfix(i1.get(), reinterpret_cast<const Token*>(m_phrase.data()), m_phrase.size());
-
-    // check if we found anything at all (at least the first word) -- otherwise, rawCnt() fails.
-    // now FIXED rawCnt(). (in ug_tsa_tree_iterator.h)
-    
-    //if(mfix.size() == 0) {
-    //  XVERBOSE(2, "  ranked3: ranked3_collect() found 0 occurrences\n");
-    //  return 0;
-    //}
-    
-
-    size_t occurrences = mfix.rawCnt();
-
-    XVERBOSE(2, "  ranked3: ranked3_collect() found " << occurrences << " raw occurrences\n");
-
-    std::vector<size_t> sampleIndices;
-    // generate sample indices
-    // (over-sample raw occurrences, so we may end up with enough good samples)
-    random_indices(std::min(samples, occurrences), occurrences, m_rnd, sampleIndices);
-
-    //while(m_stats->good < good_target) {
-    std::vector<size_t>::iterator it;
-    for(it = sampleIndices.begin(); it != sampleIndices.end(); it++) {
-      // to do: nicer random access syntax?
-      sapt::tsa::ArrayEntry I(i1.get(), mfix.index_jump_precise(*it));
-      consider_sample(I, i1, i2);
-      // found enough samples? (necessary due to over-sampling raw occurrences)
-      //if(m_stats->good >= good_target)
-      //  break;
-    }
-
-    return m_stats->good - good_before;
-  }
-*/
 
   // the original ranked sampling
   template<typename Token>
