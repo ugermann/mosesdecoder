@@ -18,7 +18,14 @@
 
 namespace map_helper {
   /** Map access with default element value */
-  size_t get(boost::unordered_map<size_t, size_t> m, size_t key);
+  inline size_t get(boost::unordered_map<size_t, size_t>& m, size_t key) {
+    size_t defaultVal = key;
+    boost::unordered_map<size_t, size_t>::iterator it = m.find(key);
+    if(it != m.end())
+      return it->second;
+    else
+      return defaultVal;
+  }
 }
 
 /**
@@ -28,11 +35,13 @@ namespace map_helper {
 * Kudos to Nick Johnson: http://stackoverflow.com/a/6978109
 */
 template<class Engine>
-void random_indices(size_t k, size_t n, Engine &randomEngine, std::vector<size_t>& out) {
+void random_indices(size_t k, size_t n, Engine& randomEngine, std::vector<size_t>& out) {
   using map_helper::get;
   // shuffled array representation: missing elements are implicitly equal to their key/index
   boost::unordered_map<size_t, size_t> state;
   size_t swap_with, t;
+
+  state.reserve(k);
 
   for(size_t i = 0; i < k; i++) {
     // uniform_int_distribution takes a closed range [a,b]

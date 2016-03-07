@@ -123,7 +123,9 @@ namespace sapt {
 
     // generate sample indices (among all domains)
     std::vector<size_t> sampleIndices;
-    random_indices(std::min(samples, totalOccurrences), totalOccurrences, m_rnd, sampleIndices);
+    size_t nind = std::min(samples, totalOccurrences);
+    sampleIndices.reserve(nind);
+    random_indices(nind, totalOccurrences, m_rnd, sampleIndices);
 
     // consider samples
     // (generated indices point into the concatenation of locations found in all 'domains', in order)
