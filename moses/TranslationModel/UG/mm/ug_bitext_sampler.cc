@@ -37,11 +37,16 @@ namespace sapt {
 
     // in descending order of score, collect samples from each mentioned domain
     std::vector<std::pair<float, id_type> >::iterator it;
+    std::vector<id_type> domains;
     for(it = domScores.begin(); needSamples > 0 && it != domScores.end(); it++) {
       id_type idom = it->second;
       domUsed.insert(idom);
 
-      size_t collected = ranked3_collect(needSamples, bitext.domainI1[idom], bitext.domainI2[idom]);
+      domains.clear();
+      domains.push_back(idom);
+
+      //size_t collected = ranked3_collect(needSamples, bitext.domainI1[idom], bitext.domainI2[idom]);
+      size_t collected = uniform_collect(needSamples, domains);
       XVERBOSE(2, "  ranked3: domain " << idom << " collected " << collected << " samples\n");
       needSamples -= collected;
     }
@@ -87,7 +92,7 @@ namespace sapt {
   size_t
   BitextSampler<Token>::
   uniform_collect(size_t samples, const std::vector<id_type>& domains) {
-    if(domains.size() == 0)
+    if(domains.size() == 0 || samples == 0)
       return 0;
 
     size_t good_before_total = m_stats->good;
@@ -159,6 +164,7 @@ namespace sapt {
    * Collects min(samples, occurrences) randomly.
    * TODO: this is just a special case of uniform_collect().
    */
+/*
   template<typename Token>
   size_t
   BitextSampler<Token>::
@@ -170,12 +176,12 @@ namespace sapt {
 
     // check if we found anything at all (at least the first word) -- otherwise, rawCnt() fails.
     // now FIXED rawCnt(). (in ug_tsa_tree_iterator.h)
-    /*
-    if(mfix.size() == 0) {
-      XVERBOSE(2, "  ranked3: ranked3_collect() found 0 occurrences\n");
-      return 0;
-    }
-    */
+    
+    //if(mfix.size() == 0) {
+    //  XVERBOSE(2, "  ranked3: ranked3_collect() found 0 occurrences\n");
+    //  return 0;
+    //}
+    
 
     size_t occurrences = mfix.rawCnt();
 
@@ -199,7 +205,7 @@ namespace sapt {
 
     return m_stats->good - good_before;
   }
-
+*/
 
   // the original ranked sampling
   template<typename Token>
