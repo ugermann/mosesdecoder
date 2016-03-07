@@ -20,7 +20,7 @@ int main(int argc, char const* argv[])
   }
 
   StaticData const& global = StaticData::Instance();
-  global.SetVerboseLevel(0);
+  //global.SetVerboseLevel(0);
   vector<FactorType> ifo = global.options()->input.factor_order;
 
   // Get last PhraseDictionary in config (either single model or model combination entry)
