@@ -98,7 +98,7 @@ BitextSampler : public Moses::reference_counter
   size_t perform_ranked_sampling2();
 
   size_t perform_ranked_sampling3();
-  size_t ranked3_collect(size_t samples, SPTR<TSA<Token> > i1, SPTR<TSA<Token> > i2);
+//  size_t ranked3_collect(size_t samples, SPTR<TSA<Token> > i1, SPTR<TSA<Token> > i2);
   size_t uniform_collect(size_t samples, const std::vector<id_type>& domains);
 
 
