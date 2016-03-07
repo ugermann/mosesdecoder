@@ -123,5 +123,5 @@ mam_verify
 calc-coverage
 ; 
 
-fakelib mm : [ glob ug_*.cc tpt_*.cc num_read_write.cc fisheryates.cpp ] ;
+fakelib mm : [ glob ug_*.cc tpt_*.cc num_read_write.cc ] ;
 
