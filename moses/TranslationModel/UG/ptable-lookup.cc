@@ -51,7 +51,7 @@ int main(int argc, char const* argv[])
     exit(1);
 
   StaticData const& global = StaticData::Instance();
-  global.SetVerboseLevel(0);
+  //global.SetVerboseLevel(0);
   vector<FactorType> ifo = global.options()->input.factor_order;
 
   PhraseDictionary* PT = PhraseDictionary::GetColl()[0];
