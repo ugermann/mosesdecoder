@@ -2,6 +2,30 @@
 
 #include "ug_bitext_sampler.h"
 
+#include "util/usage.hh"
+#include <sys/time.h>
+#include <iomanip>
+#include <sstream>
+
+
+// current time: unix timestamp with microsecond precision
+double current_time() {
+/*
+  struct timeval tv;
+  gettimeofday(&tv,NULL);
+  double cur_time = static_cast<double>(1000000ULL * tv.tv_sec + tv.tv_usec) / 1e6;
+  return cur_time;
+*/
+  return util::WallTime();
+}
+
+std::string format_time(double cur_time) {
+  std::stringstream ss;
+  ss << std::fixed << std::setprecision(6) << cur_time;
+  return ss.str();
+}
+
+
 namespace sapt {
   // ranked sampling on individual domain indexes
   template<typename Token>
@@ -9,9 +33,11 @@ namespace sapt {
   BitextSampler<Token>::
   perform_ranked_sampling3()
   {
+    double begin = current_time();
+
     //UTIL_THROW_IF2(m_bias.get() == NULL, "ranked3 sampling without any bias weights.");
     if(m_bias.get() == NULL) {
-      XVERBOSE(1, "warning: ranked3: no bias weights given, falling back to uniform random sampling.");
+      XVERBOSE(1, "warning: ranked3: no bias weights given, falling back to uniform random sampling.\n");
     }
 
     // to do: static assert: bitext is convertible to mmBitext (Mmsapt only uses BitextSampler on mmBitext)
@@ -49,6 +75,8 @@ namespace sapt {
       needSamples -= collected;
     }
 
+    XVERBOSE(1, "  ranked3: individual_collect took " << format_time(current_time()-begin) << " s\n");
+
     // for any remaining samples needed, sample uniformly from the remaining, unmentioned domains
     std::vector<id_type> remainingDomains;
     for(id_type idom = 0; idom < bitext.domainCount(); idom++) {
@@ -58,7 +86,9 @@ namespace sapt {
       remainingDomains.push_back(idom);
     }
 
+    double before_remaining_collect = current_time();
     size_t collected = uniform_collect(needSamples, remainingDomains);
+    XVERBOSE(1, "  ranked3: remaining_collect took " << format_time(current_time()-before_remaining_collect) << " s\n");
     XVERBOSE(2, "  ranked3: remaining domains collected " << collected << " samples\n");
     needSamples -= collected;
 
@@ -67,6 +97,7 @@ namespace sapt {
       XVERBOSE(1, std::cerr << "warning: ranked3: '" << bitext.V1->toString(m_phrase) << "' looked up, but no samples found.\n");
     }
 
+    double before_fixup_raw2 = current_time();
 
     // fix up raw2: these were being overwritten by individual domains' target side raw counts
     // for now, use global index raw2, just like the original ranked sampling
@@ -78,6 +109,15 @@ namespace sapt {
       js.setCnt2(target_iter.rawCnt());
     }
 
+    double end = current_time();
+    XVERBOSE(1, "  ranked3: fixup_raw2 took " << format_time(end-before_fixup_raw2) << " s\n");
+    //XVERBOSE(1, "  ranked3: perform_ranked_sampling3() '" << bitext.V1->toString(m_phrase) << "' took " << format_time(end-begin) << " s total\n");
+    IFVERBOSE(1) {
+      std::stringstream ss;
+      ss << "  ranked3: perform_ranked_sampling3() '" << bitext.V1->toString(m_phrase) << "' took " << format_time(end-begin) << " s total\n";
+      // makes sure we get the entire line logged at once (<3 threading in moses)
+      XVERBOSE(1, ss.str());
+    }
 
     return 0; // nobody actually uses this.  AFAICT, this should be number of attempted samples.
   }
