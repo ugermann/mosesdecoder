@@ -157,7 +157,7 @@ namespace sapt {
       XVERBOSE(2, "  ranked3 uniform_collect(): domain " << *it << " found " << phraseLocations.rawCnt() << " raw occurrences\n");
     }
     domainBegin.push_back(totalOccurrences); // trailing sentinel
-    XVERBOSE(1, "  ranked3 uniform_collect(): found " << totalOccurrences << " raw occurrences in total\n");
+    XVERBOSE(2, "  ranked3 uniform_collect(): found " << totalOccurrences << " raw occurrences in total\n");
 
     // generate sample indices (among all domains)
     std::vector<size_t> sampleIndices;
