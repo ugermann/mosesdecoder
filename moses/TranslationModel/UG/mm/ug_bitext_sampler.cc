@@ -75,7 +75,7 @@ namespace sapt {
       needSamples -= collected;
     }
 
-    XVERBOSE(1, "  ranked3: individual_collect took " << format_time(current_time()-begin) << " s\n");
+    XVERBOSE(2, "  ranked3: individual_collect took " << format_time(current_time()-begin) << " s\n");
 
     // for any remaining samples needed, sample uniformly from the remaining, unmentioned domains
     std::vector<id_type> remainingDomains;
@@ -88,7 +88,7 @@ namespace sapt {
 
     double before_remaining_collect = current_time();
     size_t collected = uniform_collect(needSamples, remainingDomains);
-    XVERBOSE(1, "  ranked3: remaining_collect took " << format_time(current_time()-before_remaining_collect) << " s\n");
+    XVERBOSE(2, "  ranked3: remaining_collect took " << format_time(current_time()-before_remaining_collect) << " s\n");
     XVERBOSE(2, "  ranked3: remaining domains collected " << collected << " samples\n");
     needSamples -= collected;
 
@@ -110,13 +110,13 @@ namespace sapt {
     }
 
     double end = current_time();
-    XVERBOSE(1, "  ranked3: fixup_raw2 took " << format_time(end-before_fixup_raw2) << " s\n");
+    XVERBOSE(2, "  ranked3: fixup_raw2 took " << format_time(end-before_fixup_raw2) << " s\n");
     //XVERBOSE(1, "  ranked3: perform_ranked_sampling3() '" << bitext.V1->toString(m_phrase) << "' took " << format_time(end-begin) << " s total\n");
-    IFVERBOSE(1) {
+    IFVERBOSE(2) {
       std::stringstream ss;
       ss << "  ranked3: perform_ranked_sampling3() '" << bitext.V1->toString(m_phrase) << "' took " << format_time(end-begin) << " s total\n";
       // makes sure we get the entire line logged at once (<3 threading in moses)
-      XVERBOSE(1, ss.str());
+      XVERBOSE(2, ss.str());
     }
 
     return 0; // nobody actually uses this.  AFAICT, this should be number of attempted samples.
