@@ -92,9 +92,10 @@ namespace sapt {
     XVERBOSE(2, "  ranked3: remaining domains collected " << collected << " samples\n");
     needSamples -= collected;
 
-    // sanity check: any samples collected? (we should never have been called otherwise)
     if(needSamples == m_samples) {
-      XVERBOSE(1, std::cerr << "warning: ranked3: '" << bitext.V1->toString(m_phrase) << "' looked up, but no samples found.\n");
+      // we should only have been called for existing number of samples.
+      // but checking raw1 is better for that, since for low counts, we may end up with all bad samples, and this triggers often.
+      XVERBOSE(2, std::cerr << "  ranked3: '" << bitext.V1->toString(m_phrase) << "' looked up, but no samples found.\n");
     }
 
     double before_fixup_raw2 = current_time();
