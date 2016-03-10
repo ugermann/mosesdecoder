@@ -75,9 +75,9 @@ protected:
   int m_lmtb_sentenceStart; //lmtb symbols to initialize ngram with
   int m_lmtb_sentenceEnd;   //lmt symbol to initialize ngram with
   int m_lmtb_dub;           //dictionary upperboud
-  int m_lmtb_size;          //max ngram stored in the table
+  size_t m_lmtb_size;          //max ngram stored in the table
   bool m_weight_map_normalization;  //flag to use normalized LM context weights
-  int  m_weight_map_limit;        //number of weights to actually consider (selected after sorting)
+  size_t  m_weight_map_limit;        //number of weights to actually consider (selected after sorting)
   bool m_use_context_weights; 
   // => use context weights if no interpolation weights are given
   std::string m_id; // internal name to identify this instance of the LanguageModelIRST
@@ -92,11 +92,12 @@ protected:
   int GetLmID( const std::string &str ) const;
   int GetLmID( const Factor *factor ) const;
 
-#ifdef WITH_THREAD
-  // mutable boost::shared_mutex m_lock;
-  boost::thread_specific_ptr<SPTR<weightmap_t> > t_interpolation_weights;
+#ifdef WITH_THREADS
+  mutable boost::shared_mutex m_lock;
+  //boost::thread_specific_ptr<SPTR<weightmap_t> > t_interpolation_weights;
+  boost::thread_specific_ptr<weightmap_t> t_interpolation_weights;
 #else
-  boost::scoped_ptr<weightmap_t> t_interpolation_weights; 
+  boost::scoped_ptr<weightmap_t> *t_interpolation_weights; 
 #endif
 
 public:
@@ -126,7 +127,7 @@ public:
   void CleanUpAfterSentenceProcessing(const InputType& source);
 
   void set_dictionary_upperbound(int dub) {
-    m_lmtb_size=dub ;
+    m_lmtb_size=(size_t) dub ;
   };
 
   const std::string GetId() const {
