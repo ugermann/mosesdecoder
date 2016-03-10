@@ -184,14 +184,14 @@ void LanguageModelIRST::Load(AllOptions::ptr const& opts)
 
   CreateFactors(factorCollection);
 
-  VERBOSE(3, GetScoreProducerDescription() << " LanguageModelIRST::Load() m_unknownId=" << m_unknownId << std::endl);
+  VERBOSE(3, GetScoreProducerDescription() << " LanguageModelIRST::Load() m_unknownId=|" << m_unknownId << "|" << std::endl);
 
   //install caches to save time (only if PS_CACHE_ENABLE is defined through compilation flags)
   m_lmtb->init_caches(m_lmtb_size>2?m_lmtb_size-1:2);
 
-  VERBOSE(3, GetScoreProducerDescription() << " LanguageModelIRST::Load() m_lmtb_dub:" << m_lmtb_dub << "|" << std::endl);
+  VERBOSE(3, GetScoreProducerDescription() << " LanguageModelIRST::Load() m_lmtb_dub:|" << m_lmtb_dub << "|" << std::endl);
   if (m_lmtb_dub > 0) m_lmtb->setlogOOVpenalty(m_lmtb_dub);
-  VERBOSE(3, GetScoreProducerDescription() << " LanguageModelIRST::Load() oovpenalty:" << m_lmtb->getlogOOVpenalty() << "|" << std::endl);
+  VERBOSE(3, GetScoreProducerDescription() << " LanguageModelIRST::Load() oovpenalty:|" << m_lmtb->getlogOOVpenalty() << "|" << std::endl);
   d->incflag(0);
 }
 
@@ -529,7 +529,8 @@ struct less_second {
 void SortAndSelect(LanguageModelIRST::weightmap_t& M, int limit) {
     assert(M.size() > 0);
 
-    //if limit (i.e the required number of weights) is smaller than the actual amount of available weights
+    //check if limit (i.e the required number of weights) is smaller than the actual amount of available weights
+    //if not do nothing
     if (limit < M.size()) {
         //std::map is not sortable
         //copy entries in an std::vector and sort that
@@ -544,6 +545,8 @@ void SortAndSelect(LanguageModelIRST::weightmap_t& M, int limit) {
         for (it = mapcopy.begin(); it != mapcopy.begin() + limit; it++) {
             M.insert(make_pair(it->first, it->second));
         }
+    }else{
+      //do nothing
     }
 }
 
@@ -565,7 +568,8 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
   SPTR <ContextScope> const &scope = ttask->GetScope();
   bool normalize = m_weight_map_normalization;
   bool using_context_weights = false;
-  SPTR < weightmap_t const> weights = scope->GetLmInterpolationWeights();
+  SPTR < weightmap_t const> weights = scope->GetContextWeights();
+//  SPTR < weightmap_t const> weights = scope->GetInterpolationWeights();
   if (!weights && m_use_context_weights) {
     normalize = true; // always normalize context weights
     weights = scope->GetContextWeights();
@@ -573,11 +577,12 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
   }
   if (weights) {
     t_interpolation_weights.reset(new weightmap_t(*weights));
-    if (m_weight_map_limit > 0) //required a specific amount of weights
+    if (m_weight_map_limit > 0){ //required a specific amount of weights
       SortAndSelect(*t_interpolation_weights, m_weight_map_limit);
-    if (normalize)
+    } 
+    if (normalize){
       Normalize(*t_interpolation_weights);
-
+    } 
     IFFEATUREVERBOSE(3)
     {
       typedef weightmap_t::value_type item;
@@ -619,7 +624,7 @@ void LanguageModelIRST::SetParameter(const std::string& key, const std::string& 
   } else if (key == "dub") {
     m_lmtb_dub = Scan<unsigned int>(value);
   } else if (key == "weight_normalization") {
-  m_lmtb_dub = Scan<unsigned int>(value);
+    m_weight_map_normalization = Scan<bool>(value);
   } else if (key == "weight_limit") {
     m_weight_map_limit = Scan<unsigned int>(value);
   } else if (key == "consider-context-weights") {
