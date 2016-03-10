@@ -63,7 +63,7 @@ class LanguageModelIRST : public LanguageModelSingleFactor
 {
 public:
   // the type weightmap_t  must be equal to the type topic_map_t of IRSTLM
-  typedef std::map<std::string,float> weightmap_t;
+  typedef std::map<std::string, float> weightmap_t;
   typedef std::map<std::string, weightmap_t > weightmap_map_t;
 
 protected:
@@ -76,7 +76,8 @@ protected:
   int m_lmtb_sentenceEnd;   //lmt symbol to initialize ngram with
   int m_lmtb_dub;           //dictionary upperboud
   int m_lmtb_size;          //max ngram stored in the table
-  bool m_weight_map_normalization;     //flag to use normalized LM context weights
+  bool m_weight_map_normalization;  //flag to use normalized LM context weights
+  int  m_weight_map_limit;        //number of weights to actually consider (selected after sorting)
   bool m_use_context_weights; 
   // => use context weights if no interpolation weights are given
   std::string m_id; // internal name to identify this instance of the LanguageModelIRST

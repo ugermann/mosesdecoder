@@ -112,30 +112,34 @@ LanguageModelIRST::LanguageModelIRST(const std::string &line)
   }
 */
 
-  m_id = "default";
-  m_weight_map_normalization=false;
-  m_use_context_weights=false; 
-  ReadParameters();
+      m_id = "default";
+      m_weight_map_normalization = false;
+      m_weight_map_limit = 0; //default is 0, i.e. no limits, take all available weights
+      m_use_context_weights = false;
+      ReadParameters();
 
-  VERBOSE(3, GetScoreProducerDescription() 
-	  << " LanguageModelIRST::LanguageModelIRST() m_lmtb_dub:|" 
-	  << m_lmtb_dub << "|" << std::endl);
-  VERBOSE(3, GetScoreProducerDescription() 
-	  << " LanguageModelIRST::LanguageModelIRST() m_filePath:|" 
-	  << m_filePath << "|" << std::endl);
-  VERBOSE(3, GetScoreProducerDescription() 
-	  << " LanguageModelIRST::LanguageModelIRST() m_factorType:|" 
-	  << m_factorType << "|" << std::endl);
-  VERBOSE(3, GetScoreProducerDescription() 
-	  << " LanguageModelIRST::LanguageModelIRST() m_id:|" 
-	  << m_id << "|" << std::endl);
-  VERBOSE(3, GetScoreProducerDescription() 
-	  << " LanguageModelIRST::LanguageModelIRST() m_weight_map_normalization:|" 
-	  << m_weight_map_normalization << "|" << std::endl);
-  VERBOSE(3, GetScoreProducerDescription() 
-	  << " LanguageModelIRST::LanguageModelIRST() "
-	  << "m_use_context_weights:|" << m_use_context_weights << "|" 
-	  << std::endl);
+      VERBOSE(3, GetScoreProducerDescription()
+                 << " LanguageModelIRST::LanguageModelIRST() m_lmtb_dub:|"
+                 << m_lmtb_dub << "|" << std::endl);
+      VERBOSE(3, GetScoreProducerDescription()
+                 << " LanguageModelIRST::LanguageModelIRST() m_filePath:|"
+                 << m_filePath << "|" << std::endl);
+      VERBOSE(3, GetScoreProducerDescription()
+                 << " LanguageModelIRST::LanguageModelIRST() m_factorType:|"
+                 << m_factorType << "|" << std::endl);
+      VERBOSE(3, GetScoreProducerDescription()
+                 << " LanguageModelIRST::LanguageModelIRST() m_id:|"
+                 << m_id << "|" << std::endl);
+      VERBOSE(3, GetScoreProducerDescription()
+                 << " LanguageModelIRST::LanguageModelIRST() m_weight_map_normalization:|"
+                 << m_weight_map_normalization << "|" << std::endl);
+      VERBOSE(3, GetScoreProducerDescription()
+                 << " LanguageModelIRST::LanguageModelIRST() m_weight_map_limit:|"
+                 << m_weight_map_limit << "|" << std::endl);
+      VERBOSE(3, GetScoreProducerDescription()
+                 << " LanguageModelIRST::LanguageModelIRST() "
+                 << "m_use_context_weights:|" << m_use_context_weights << "|"
+                 << std::endl);
 }
 
 LanguageModelIRST::~LanguageModelIRST()
@@ -513,6 +517,36 @@ void Normalize(LanguageModelIRST::weightmap_t& M)
   BOOST_FOREACH(entry& e, M) e.second /= total;
 }
 
+template <typename T1, typename T2>
+struct less_second {
+    typedef pair<T1, T2> type;
+
+    bool operator()(type const &a, type const &b) const {
+      return a.second < b.second;
+    }
+};
+
+void SortAndSelect(LanguageModelIRST::weightmap_t& M, int limit) {
+    assert(M.size() > 0);
+
+    //if limit (i.e the required number of weights) is smaller than the actual amount of available weights
+    if (limit < M.size()) {
+        //std::map is not sortable
+        //copy entries in an std::vector and sort that
+        vector<pair<std::string, float> > mapcopy(M.begin(), M.end());
+        //then sort the vector
+        sort(mapcopy.begin(), mapcopy.end(), less_second<std::string, int>());
+
+        //clean all entries in the original map
+        M.clear();
+        //then re-insert the first limit elements;
+        vector<pair<std::string, float> >::const_iterator it;
+        for (it = mapcopy.begin(); it != mapcopy.begin() + limit; it++) {
+            M.insert(make_pair(it->first, it->second));
+        }
+    }
+}
+
 void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
 {
   //nothing to do
@@ -521,17 +555,17 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
 #endif
   // we assume here that translation is run in one single thread for each ttask
   // (no parallelization at a finer granularity involving IRSTLM)
-  
+
   // This function is called prior to actual translation and allows the class
   // to set up thread-specific information such as context weights
 #ifdef WITH_THREAD
   boost::unique_lock<boost::shared_mutex> mylock(m_lock);
 #endif
 
-  SPTR<ContextScope> const& scope = ttask->GetScope();
+  SPTR <ContextScope> const &scope = ttask->GetScope();
   bool normalize = m_weight_map_normalization;
-  bool using_context_weights=false;
-  SPTR<weightmap_t const> weights = scope->GetLmInterpolationWeights();
+  bool using_context_weights = false;
+  SPTR < weightmap_t const> weights = scope->GetLmInterpolationWeights();
   if (!weights && m_use_context_weights) {
     normalize = true; // always normalize context weights
     weights = scope->GetContextWeights();
@@ -539,24 +573,28 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
   }
   if (weights) {
     t_interpolation_weights.reset(new weightmap_t(*weights));
-    if (normalize) 
+    if (m_weight_map_limit > 0) //required a specific amount of weights
+      SortAndSelect(*t_interpolation_weights, m_weight_map_limit);
+    if (normalize)
       Normalize(*t_interpolation_weights);
-    IFFEATUREVERBOSE(3) {
+
+    IFFEATUREVERBOSE(3)
+    {
       typedef weightmap_t::value_type item;
-      std::string weight_source = (using_context_weights ? "context weight" : 
-				   "lm interpolation weight");
-      BOOST_FOREACH(item const& e, *t_interpolation_weights) {
-	ostringstream buf;
-	weightmap_t::const_iterator m = weights->find(e.first);
-	if (m != weights->end()) buf << m->second; 
-	if (normalize) buf << " => " << (*t_interpolation_weights)[e.first];
-	TRACE_ERR("[" << GetScoreProducerDescription() << "] " 
-		  << weight_source << ": " << e.first << " => "
-		  << buf.str() << std::endl);
+      std::string weight_source = (using_context_weights ? "context weight" :
+                                   "lm interpolation weight");
+      BOOST_FOREACH(item const&e, *t_interpolation_weights) {
+        ostringstream buf;
+        weightmap_t::const_iterator m = weights->find(e.first);
+        if (m != weights->end()) buf << m->second;
+        if (normalize) buf << " => " << (*t_interpolation_weights)[e.first];
+        if (m_weight_map_limit) buf << " => " << (*t_interpolation_weights)[e.first];
+        TRACE_ERR("[" << GetScoreProducerDescription() << "] "
+                  << weight_source << ": " << e.first << " => "
+                  << buf.str() << std::endl);
       }
     }
   }
-
 }
 
 void LanguageModelIRST::CleanUpAfterSentenceProcessing(const InputType& source)
@@ -581,7 +619,9 @@ void LanguageModelIRST::SetParameter(const std::string& key, const std::string& 
   } else if (key == "dub") {
     m_lmtb_dub = Scan<unsigned int>(value);
   } else if (key == "weight_normalization") {
-    m_weight_map_normalization = Scan<bool>(value);
+  m_lmtb_dub = Scan<unsigned int>(value);
+  } else if (key == "weight_limit") {
+    m_weight_map_limit = Scan<unsigned int>(value);
   } else if (key == "consider-context-weights") {
     m_use_context_weights = Scan<bool>(value);
   } else {
