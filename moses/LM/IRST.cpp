@@ -346,8 +346,9 @@ void LanguageModelIRST::CalcScore(const Phrase &phrase, float &fullScore, float 
 
 
   weightmap_t* weight_map = t_interpolation_weights.get();
+//  weightmap_t* weight_map = t_interpolation_weights->get();
 
-  int _min = min(m_lmtb_size - 1, (int) phrase.GetSize());
+  int _min = min((int) m_lmtb_size - 1, (int) phrase.GetSize());
 
   int codes[m_lmtb_size];
   int idx = 0;
@@ -400,7 +401,7 @@ FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FF
   //[begin, end) in STL-like fashion.
   const int begin = (const int) hypo.GetCurrTargetWordsRange().GetStartPos();
   const int end = (const int) hypo.GetCurrTargetWordsRange().GetEndPos() + 1;
-  const int adjust_end = (const int) std::min(end, begin + m_lmtb_size - 1);
+  const int adjust_end = (const int) std::min(end, begin + (int) m_lmtb_size - 1);
 
   //set up context
   //fill the farthest positions with sentenceStart symbols, if "empty" positions are available
@@ -422,6 +423,7 @@ FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FF
   ngram_state_t msidx = 0;
   float score;
   weightmap_t* weight_map = t_interpolation_weights.get();
+//  weightmap_t* weight_map = t_interpolation_weights->get();
   if (weight_map && weight_map->size()>0){
     score = m_lmtb->clprob(codes,m_lmtb_size,*weight_map,NULL,NULL,&msidx,&msp);
   }else{
@@ -526,7 +528,7 @@ struct less_second {
     }
 };
 
-void SortAndSelect(LanguageModelIRST::weightmap_t& M, int limit) {
+void SortAndSelect(LanguageModelIRST::weightmap_t& M, size_t limit) {
     assert(M.size() > 0);
 
     //check if limit (i.e the required number of weights) is smaller than the actual amount of available weights
@@ -561,7 +563,7 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
 
   // This function is called prior to actual translation and allows the class
   // to set up thread-specific information such as context weights
-#ifdef WITH_THREAD
+#ifdef WITH_THREADs
   boost::unique_lock<boost::shared_mutex> mylock(m_lock);
 #endif
 
@@ -577,11 +579,14 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
   }
   if (weights) {
     t_interpolation_weights.reset(new weightmap_t(*weights));
+//    t_interpolation_weights->reset(new weightmap_t(*weights));
     if (m_weight_map_limit > 0){ //required a specific amount of weights
       SortAndSelect(*t_interpolation_weights, m_weight_map_limit);
+//      SortAndSelect(t_interpolation_weights, m_weight_map_limit);
     } 
     if (normalize){
       Normalize(*t_interpolation_weights);
+//      Normalize(t_interpolation_weights);
     } 
     IFFEATUREVERBOSE(3)
     {
@@ -589,11 +594,14 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
       std::string weight_source = (using_context_weights ? "context weight" :
                                    "lm interpolation weight");
       BOOST_FOREACH(item const&e, *t_interpolation_weights) {
+//      BOOST_FOREACH(item const&e, t_interpolation_weights) {
         ostringstream buf;
         weightmap_t::const_iterator m = weights->find(e.first);
         if (m != weights->end()) buf << m->second;
         if (normalize) buf << " => " << (*t_interpolation_weights)[e.first];
-        if (m_weight_map_limit) buf << " => " << (*t_interpolation_weights)[e.first];
+//        if (normalize) buf << " => " << (t_interpolation_weights)[e.first];
+        if (m_weight_map_limit>0) buf << " => " << (*t_interpolation_weights)[e.first];
+//        if (m_weight_map_limit) buf << " => " << (t_interpolation_weights)[e.first];
         TRACE_ERR("[" << GetScoreProducerDescription() << "] "
                   << weight_source << ": " << e.first << " => "
                   << buf.str() << std::endl);
@@ -615,6 +623,7 @@ void LanguageModelIRST::CleanUpAfterSentenceProcessing(const InputType& source)
     m_lmtb->reset_caches();
   }
   t_interpolation_weights.reset();
+//  t_interpolation_weights->reset();
 }
 
 void LanguageModelIRST::SetParameter(const std::string& key, const std::string& value)
@@ -626,7 +635,7 @@ void LanguageModelIRST::SetParameter(const std::string& key, const std::string& 
   } else if (key == "weight_normalization") {
     m_weight_map_normalization = Scan<bool>(value);
   } else if (key == "weight_limit") {
-    m_weight_map_limit = Scan<unsigned int>(value);
+    m_weight_map_limit = Scan<size_t>(value);
   } else if (key == "consider-context-weights") {
     m_use_context_weights = Scan<bool>(value);
   } else {
