@@ -43,7 +43,8 @@ namespace sapt {
     // to do: static assert: bitext is convertible to mmBitext (Mmsapt only uses BitextSampler on mmBitext)
     const mmBitext<Token>& bitext = reinterpret_cast<const mmBitext<Token>&>(*m_bitext);
 
-    assert(bitext.domainI1.size() > 0); // rudimentary check for presence of domain indexes
+    // rudimentary check for presence of domain indexes
+    UTIL_THROW_IF2(bitext.domainI1.size() == 0, "for ranked3, you must build domain indexes using mtt-build -m option.");
 
     std::vector<std::pair<float, id_type> > domScores;
     boost::unordered_set<id_type> domUsed;
