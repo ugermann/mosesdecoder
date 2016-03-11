@@ -555,7 +555,7 @@ void SortAndSelect(LanguageModelIRST::weightmap_t& M, size_t limit) {
 void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
 {
   //nothing to do
-#ifdef TRACE_CACHE
+#if defined(TRACE_CACHE) && !defined(WITH_THREADS)
   m_lmtb->sentence_id++;
 #endif
   // we assume here that translation is run in one single thread for each ttask
@@ -563,9 +563,9 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
 
   // This function is called prior to actual translation and allows the class
   // to set up thread-specific information such as context weights
-#ifdef WITH_THREADs
-  boost::unique_lock<boost::shared_mutex> mylock(m_lock);
-#endif
+
+  // DO NOT modify members of 'this' here. We are being called from different
+  // threads, and there is no locking here.
 
   SPTR <ContextScope> const &scope = ttask->GetScope();
   bool normalize = m_weight_map_normalization;
@@ -578,6 +578,7 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
     using_context_weights = true;
   }
   if (weights) {
+    // t_interpolation_weights is a thread_specific_ptr, change affects the local thread only
     t_interpolation_weights.reset(new weightmap_t(*weights));
 //    t_interpolation_weights->reset(new weightmap_t(*weights));
     if (m_weight_map_limit > 0){ //required a specific amount of weights
