@@ -92,6 +92,7 @@ protected:
   int GetLmID( const std::string &str ) const;
   int GetLmID( const Factor *factor ) const;
 
+<<<<<<< HEAD
 #ifdef WITH_THREADS
   mutable boost::shared_mutex m_lock;
   //boost::thread_specific_ptr<SPTR<weightmap_t> > t_interpolation_weights;
@@ -99,6 +100,9 @@ protected:
 #else
   boost::scoped_ptr<weightmap_t> *t_interpolation_weights; 
 #endif
+=======
+  boost::thread_specific_ptr<weightmap_t> t_interpolation_weights;
+>>>>>>> 750866128359131bad651b325826735b2da9f309
 
 public:
   LanguageModelIRST(const std::string &line);

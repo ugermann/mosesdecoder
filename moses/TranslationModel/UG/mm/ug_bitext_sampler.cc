@@ -43,7 +43,12 @@ namespace sapt {
     // to do: static assert: bitext is convertible to mmBitext (Mmsapt only uses BitextSampler on mmBitext)
     const mmBitext<Token>& bitext = reinterpret_cast<const mmBitext<Token>&>(*m_bitext);
 
+<<<<<<< HEAD
     assert(bitext.domainI1.size() > 0); // rudimentary check for presence of domain indexes
+=======
+    // rudimentary check for presence of domain indexes
+    UTIL_THROW_IF2(bitext.domainI1.size() == 0, "for ranked3, you must build domain indexes using mtt-build -m option.");
+>>>>>>> 750866128359131bad651b325826735b2da9f309
 
     std::vector<std::pair<float, id_type> > domScores;
     boost::unordered_set<id_type> domUsed;
@@ -549,6 +554,7 @@ namespace sapt {
   {
     if (m_next == m_stop) return m_ctr;
     m_bias_total = 0;
+<<<<<<< HEAD
 
     typename TSA<Token>::tree_iterator mfix(m_bitext->I1.get(), reinterpret_cast<const Token*>(m_phrase.data()), m_phrase.size());
 
@@ -572,6 +578,38 @@ namespace sapt {
       if(foo)
         attempts++;
 
+=======
+    sapt::tsa::ArrayEntry I(m_next);
+    if (m_bias)
+    {
+      // Ranked and random sampling use approximate raw count
+      // For consistency of results, biased sampling should also use the
+      // approximate count
+      // m_stats->raw_cnt = 0;
+      while (I.next < m_stop)
+      {
+        m_root->readEntry(I.next,I);
+        m_bias_total += (*m_bias)[I.sid];
+      }
+      I.next = m_next;
+    }
+
+    while (m_stats->good < m_samples && I.next < m_stop)
+    {
+      m_root->readEntry(I.next,I);
+      bool foo = flip_coin(I.sid, I.offset, m_bias.get());
+#if 0
+      size_t options_total  = std::max(m_stats->raw_cnt, m_ctr);
+      size_t threshold = ((m_bias && m_bias_total > 0 && m_method != ranked_sampling)
+                          ? round((*m_bias)[I.sid]/m_bias_total * options_total * m_samples) // w/ bias
+                          : m_samples); // no bias
+
+      std::cerr << "[" << m_ctr << "/ " << m_stats->raw_cnt << ": " << m_rnd_float << "] "
+                << m_stats->good << " + " << m_random_size_t << " = "
+                << m_stats->good + m_random_size_t << " | " << threshold << "; "
+                << I.sid << ":" << I.offset << " " << (foo ? "Y" : "N") << std::endl;
+#endif
+>>>>>>> 750866128359131bad651b325826735b2da9f309
       ++m_ctr;
       size_t maxevid = foo ? consider_sample(I) : 0;
     }
