@@ -348,12 +348,9 @@ void LanguageModelIRST::CalcScore(const Phrase &phrase, float &fullScore, float 
   weightmap_t* weight_map = t_interpolation_weights.get();
 //  weightmap_t* weight_map = t_interpolation_weights->get();
 
-<<<<<<< HEAD
   if (weight_map && weight_map->size()>0){
     VERBOSE(2,"void LanguageModelIRST::CalcScore(const Phrase &phrase, ...) weight_map->size():|" << weight_map->size() << "|" << std::endl);
   }
-=======
->>>>>>> 750866128359131bad651b325826735b2da9f309
   int _min = min((int) m_lmtb_size - 1, (int) phrase.GetSize());
 
   int codes[m_lmtb_size];
@@ -561,7 +558,7 @@ void SortAndSelect(LanguageModelIRST::weightmap_t& M, size_t limit) {
 void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
 {
   //nothing to do
-#if defined(TRACE_CACHE) && !defined(WITH_THREADS)
+#ifdef TRACE_CACHE
   m_lmtb->sentence_id++;
 #endif
   // we assume here that translation is run in one single thread for each ttask
@@ -569,7 +566,6 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
 
   // This function is called prior to actual translation and allows the class
   // to set up thread-specific information such as context weights
-<<<<<<< HEAD
 
 
 /*
@@ -578,22 +574,15 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
 #endif
 */
 
-=======
-
   // DO NOT modify members of 'this' here. We are being called from different
   // threads, and there is no locking here.
-
->>>>>>> 750866128359131bad651b325826735b2da9f309
   SPTR <ContextScope> const &scope = ttask->GetScope();
   bool normalize = m_weight_map_normalization;
   bool using_context_weights = false;
   SPTR < weightmap_t const> weights = scope->GetContextWeights();
-<<<<<<< HEAD
 /*
   SPTR < weightmap_t const> weights = scope->GetInterpolationWeights();
-=======
 //  SPTR < weightmap_t const> weights = scope->GetInterpolationWeights();
->>>>>>> 750866128359131bad651b325826735b2da9f309
   if (!weights && m_use_context_weights) {
     normalize = true; // always normalize context weights
     weights = scope->GetContextWeights();
@@ -601,48 +590,23 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
   }
 */
   if (weights) {
-    // t_interpolation_weights is a thread_specific_ptr, change affects the local thread only
     t_interpolation_weights.reset(new weightmap_t(*weights));
-<<<<<<< HEAD
     if (m_weight_map_limit > 0){ //required a specific amount of weights
       SortAndSelect(*t_interpolation_weights, m_weight_map_limit);
     } 
     if (normalize){
       Normalize(*t_interpolation_weights);
-=======
-//    t_interpolation_weights->reset(new weightmap_t(*weights));
-    if (m_weight_map_limit > 0){ //required a specific amount of weights
-      SortAndSelect(*t_interpolation_weights, m_weight_map_limit);
-//      SortAndSelect(t_interpolation_weights, m_weight_map_limit);
-    } 
-    if (normalize){
-      Normalize(*t_interpolation_weights);
-//      Normalize(t_interpolation_weights);
->>>>>>> 750866128359131bad651b325826735b2da9f309
     } 
     IFFEATUREVERBOSE(3)
     {
       typedef weightmap_t::value_type item;
-<<<<<<< HEAD
       std::string weight_source = (using_context_weights ? "context weight" : "lm interpolation weight");
       BOOST_FOREACH(item const&e, *t_interpolation_weights) {
-=======
-      std::string weight_source = (using_context_weights ? "context weight" :
-                                   "lm interpolation weight");
-      BOOST_FOREACH(item const&e, *t_interpolation_weights) {
-//      BOOST_FOREACH(item const&e, t_interpolation_weights) {
->>>>>>> 750866128359131bad651b325826735b2da9f309
         ostringstream buf;
         weightmap_t::const_iterator m = weights->find(e.first);
         if (m != weights->end()) buf << m->second;
         if (normalize) buf << " => " << (*t_interpolation_weights)[e.first];
-<<<<<<< HEAD
         if (m_weight_map_limit>0) buf << " => " << (*t_interpolation_weights)[e.first];
-=======
-//        if (normalize) buf << " => " << (t_interpolation_weights)[e.first];
-        if (m_weight_map_limit>0) buf << " => " << (*t_interpolation_weights)[e.first];
-//        if (m_weight_map_limit) buf << " => " << (t_interpolation_weights)[e.first];
->>>>>>> 750866128359131bad651b325826735b2da9f309
         TRACE_ERR("[" << GetScoreProducerDescription() << "] "
                   << weight_source << ": " << e.first << " => "
                   << buf.str() << std::endl);
