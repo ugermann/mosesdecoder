@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "moses/WordLattice.h"
 #include "moses/ChartManager.h"
 
-#include "IOWrapper.h"
+#include "moses/IOWrapper.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/iostreams/device/file.hpp>

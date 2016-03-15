@@ -1,4 +1,4 @@
-#include "TranslationTask.h"
+#include "moses/TranslationTask.h"
 #include "moses/StaticData.h"
 #include "moses/Sentence.h"
 #include "moses/IOWrapper.h"
@@ -9,7 +9,7 @@
 #include "moses/InputType.h"
 #include "moses/OutputCollector.h"
 #include "moses/Incremental.h"
-#include "mbr.h"
+#include "moses/mbr.h"
 
 #include "moses/Syntax/F2S/RuleMatcherCallback.h"
 #include "moses/Syntax/F2S/RuleMatcherHyperTree.h"
