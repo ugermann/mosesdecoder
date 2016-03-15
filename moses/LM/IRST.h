@@ -43,9 +43,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //- for files in moses/LM the IRSTLM include directory is set
 //  but not for the rest of files
 #ifdef LM_IRST
+namespace irstlm {
 class lmContainer;  // irst lm container for any lm type
-class ngram;
+}
+//class ngram;
 class dictionary;
+
+/*
+ * note: IRSTLM defines
+ *  * class dictionary without a namespace.
+ *  * class lmContainer within namespace irstlm.
+ */
 #endif
 
 
@@ -68,7 +76,7 @@ public:
 
 protected:
   mutable std::vector<int> m_lmIdLookup;
-  lmContainer* m_lmtb;
+  irstlm::lmContainer* m_lmtb;
 
   int m_unknownId;  //code of OOV
   int m_empty;  //code of an empty position
