@@ -66,6 +66,8 @@ public:
   typedef std::map<std::string, float> weightmap_t;
   typedef std::map<std::string, weightmap_t > weightmap_map_t;
 
+  typedef std::vector< double > double_vec_t;
+
 protected:
   mutable std::vector<int> m_lmIdLookup;
   lmContainer* m_lmtb;
@@ -96,8 +98,10 @@ protected:
   mutable boost::shared_mutex m_lock;
   //boost::thread_specific_ptr<SPTR<weightmap_t> > t_interpolation_weights;
   boost::thread_specific_ptr<weightmap_t> t_interpolation_weights;
+  boost::thread_specific_ptr<double_vec_t> t_interpolation_weights_vec;
 #else
   boost::scoped_ptr<weightmap_t> *t_interpolation_weights; 
+  boost::scoped_ptr<double_vec_t> *t_interpolation_weights_vec;
 #endif
 
 public:

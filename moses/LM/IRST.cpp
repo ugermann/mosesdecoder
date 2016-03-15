@@ -346,7 +346,7 @@ void LanguageModelIRST::CalcScore(const Phrase &phrase, float &fullScore, float 
 
 
   weightmap_t* weight_map = t_interpolation_weights.get();
-//  weightmap_t* weight_map = t_interpolation_weights->get();
+  double_vec_t* weight_vec = t_interpolation_weights_vec.get();
 
   if (weight_map && weight_map->size()>0){
     VERBOSE(2,"void LanguageModelIRST::CalcScore(const Phrase &phrase, ...) weight_map->size():|" << weight_map->size() << "|" << std::endl);
@@ -365,7 +365,8 @@ void LanguageModelIRST::CalcScore(const Phrase &phrase, float &fullScore, float 
     if (codes[idx] == m_unknownId) ++oovCount;
 
     if (weight_map && weight_map->size()>0)
-      before_boundary += m_lmtb->clprob(codes,idx+1,*weight_map);
+      before_boundary += m_lmtb->clprob(codes,idx+1,*weight_vec);
+//      before_boundary += m_lmtb->clprob(codes,idx+1,*weight_map);
     else
       before_boundary += m_lmtb->clprob(codes,idx+1); 
 
@@ -382,10 +383,13 @@ void LanguageModelIRST::CalcScore(const Phrase &phrase, float &fullScore, float 
     codes[idx-1] = GetLmID(phrase.GetWord(position));
     if (codes[idx-1] == m_unknownId) ++oovCount;
 
-    if (weight_map && weight_map->size()>0)
-      ngramScore += m_lmtb->clprob(codes,idx,*weight_map);
-    else
+    if (weight_map && weight_map->size()>0){
+      ngramScore += m_lmtb->clprob(codes,idx,*weight_vec);
+//      ngramScore += m_lmtb->clprob(codes,idx,*weight_map);
+    }
+    else{
       ngramScore += m_lmtb->clprob(codes,idx);
+    }
   }
 
   before_boundary = TransformLMScore(before_boundary);
@@ -426,9 +430,10 @@ FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FF
   ngram_state_t msidx = 0;
   float score;
   weightmap_t* weight_map = t_interpolation_weights.get();
-//  weightmap_t* weight_map = t_interpolation_weights->get();
+  double_vec_t* weight_vec = t_interpolation_weights_vec.get();
   if (weight_map && weight_map->size()>0){
-    score = m_lmtb->clprob(codes,m_lmtb_size,*weight_map,NULL,NULL,&msidx,&msp);
+    score = m_lmtb->clprob(codes,m_lmtb_size,*weight_vec,NULL,NULL,&msidx,&msp);
+//    score = m_lmtb->clprob(codes,m_lmtb_size,*weight_map,NULL,NULL,&msidx,&msp);
   }else{
     score = m_lmtb->clprob(codes,m_lmtb_size,NULL,NULL,&msidx,&msp);
   }
@@ -440,7 +445,8 @@ FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FF
     }
     codes[idx-1] =  GetLmID(hypo.GetWord(position));
     if (weight_map && weight_map->size()>0){
-      score += m_lmtb->clprob(codes,m_lmtb_size,*weight_map,NULL,NULL,&msidx,&msp);
+      score += m_lmtb->clprob(codes,m_lmtb_size,*weight_vec,NULL,NULL,&msidx,&msp);
+//      score += m_lmtb->clprob(codes,m_lmtb_size,*weight_map,NULL,NULL,&msidx,&msp);
     }else{
       score += m_lmtb->clprob(codes,m_lmtb_size,NULL,NULL,&msidx,&msp);
     }
@@ -464,7 +470,8 @@ FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FF
       --idx;
     }
     if (weight_map && weight_map->size()>0){
-      score += m_lmtb->clprob(codes,m_lmtb_size,*weight_map,NULL,NULL,&msidx,&msp);
+      score += m_lmtb->clprob(codes,m_lmtb_size,*weight_vec,NULL,NULL,&msidx,&msp);
+//      score += m_lmtb->clprob(codes,m_lmtb_size,*weight_map,NULL,NULL,&msidx,&msp);
     }else{
       score += m_lmtb->clprob(codes,m_lmtb_size,NULL,NULL,&msidx,&msp);
     }
@@ -612,6 +619,10 @@ void LanguageModelIRST::InitializeForInput(ttasksptr const& ttask)
                   << buf.str() << std::endl);
       }
     }
+    double_vec_t *weight_vec = new double_vec_t(m_lmtb->get_Number_of_Components());
+    m_lmtb->set_weight(*t_interpolation_weights,*weight_vec);
+    t_interpolation_weights_vec.reset(weight_vec);
+
   }
 }
 
@@ -630,7 +641,7 @@ void LanguageModelIRST::CleanUpAfterSentenceProcessing(const InputType& source)
     m_lmtb->reset_caches();
   }
   t_interpolation_weights.reset();
-//  t_interpolation_weights->reset();
+  t_interpolation_weights_vec.reset();
 }
 
 void LanguageModelIRST::SetParameter(const std::string& key, const std::string& value)
