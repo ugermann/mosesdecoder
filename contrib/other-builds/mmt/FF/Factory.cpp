@@ -222,22 +222,22 @@ FeatureRegistry::FeatureRegistry()
 // Feature with different name than class.
 #define MOSES_FNAME2(name, type) Add(name, new DefaultFeatureFactory< type >());
 
-  MOSES_FNAME2("PhraseDictionaryBinary", PhraseDictionaryTreeAdaptor);
-  MOSES_FNAME(PhraseDictionaryOnDisk);
-  MOSES_FNAME(PhraseDictionaryMemory);
-  MOSES_FNAME(PhraseDictionaryScope3);
-  MOSES_FNAME(PhraseDictionaryMultiModel);
-  MOSES_FNAME(PhraseDictionaryMultiModelCounts);
-  MOSES_FNAME(PhraseDictionaryGroup);
-  MOSES_FNAME(PhraseDictionaryALSuffixArray);
-  //  MOSES_FNAME(PhraseDictionaryDynSuffixArray);
-  MOSES_FNAME(PhraseDictionaryTransliteration);
-  MOSES_FNAME(PhraseDictionaryDynamicCacheBased);
-  MOSES_FNAME(PhraseDictionaryFuzzyMatch);
-  MOSES_FNAME(ProbingPT);
-  MOSES_FNAME(PhraseDictionaryMemoryPerSentence);
-  MOSES_FNAME2("RuleTable", Syntax::RuleTableFF);
-  MOSES_FNAME2("SyntaxInputWeight", Syntax::InputWeightFF);
+//  MOSES_FNAME2("PhraseDictionaryBinary", PhraseDictionaryTreeAdaptor);
+//  MOSES_FNAME(PhraseDictionaryOnDisk);
+//  MOSES_FNAME(PhraseDictionaryMemory);
+//  MOSES_FNAME(PhraseDictionaryScope3);
+//  MOSES_FNAME(PhraseDictionaryMultiModel);
+//  MOSES_FNAME(PhraseDictionaryMultiModelCounts);
+//  MOSES_FNAME(PhraseDictionaryGroup);
+//  MOSES_FNAME(PhraseDictionaryALSuffixArray);
+//  MOSES_FNAME(PhraseDictionaryDynSuffixArray);
+//  MOSES_FNAME(PhraseDictionaryTransliteration);
+//  MOSES_FNAME(PhraseDictionaryDynamicCacheBased);
+//  MOSES_FNAME(PhraseDictionaryFuzzyMatch);
+//  MOSES_FNAME(ProbingPT);
+//  MOSES_FNAME(PhraseDictionaryMemoryPerSentence);
+//  MOSES_FNAME2("RuleTable", Syntax::RuleTableFF);
+//  MOSES_FNAME2("SyntaxInputWeight", Syntax::InputWeightFF);
 
   MOSES_FNAME(GlobalLexicalModel);
   //MOSES_FNAME(GlobalLexicalModelUnlimited); This was commented out in the original
@@ -288,7 +288,7 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(SkeletonStatefulFF);
   MOSES_FNAME(SkeletonLM);
   MOSES_FNAME(SkeletonTranslationOptionListFeature);
-  MOSES_FNAME(SkeletonPT);
+//  MOSES_FNAME(SkeletonPT);
 
 #ifdef HAVE_VW
   MOSES_FNAME(VW);
@@ -306,7 +306,7 @@ FeatureRegistry::FeatureRegistry()
 #endif
 
 #ifdef HAVE_CMPH
-  MOSES_FNAME(PhraseDictionaryCompact);
+//  MOSES_FNAME(PhraseDictionaryCompact);
 #endif
 #ifdef PT_UG
   MOSES_FNAME(Mmsapt);

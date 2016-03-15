@@ -92,10 +92,15 @@ TranslationTask
   // StaticData const& staticData = StaticData::Instance();
   // if (algo == DefaultSearchAlgorithm) algo = staticData.options().search.algo;
 
-  if (!is_syntax(algo))
+  if (!is_syntax(algo)) {
     manager.reset(new Manager(this->self())); // phrase-based
+    return manager;
+  }
 
-  else if (algo == SyntaxF2S || algo == SyntaxT2S) {
+#define WITHOUT_SYNTAX
+
+#ifndef WITHOUT_SYNTAX
+  if (algo == SyntaxF2S || algo == SyntaxT2S) {
     // STSG-based tree-to-string / forest-to-string decoding (ask Phil Williams)
     typedef Syntax::F2S::RuleMatcherCallback Callback;
     typedef Syntax::F2S::RuleMatcherHyperTree<Callback> RuleMatcher;
@@ -128,6 +133,9 @@ TranslationTask
 
   else // original SCFG manager
     manager.reset(new ChartManager(this->self()));
+#else
+  UTIL_THROW2("ERROR: requested syntax search algorithm, but compiled with WITHOUT_SYNTAX.");
+#endif
 
   return manager;
 }

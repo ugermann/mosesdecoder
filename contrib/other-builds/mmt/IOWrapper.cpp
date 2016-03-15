@@ -211,8 +211,6 @@ GetBufferedInput()
     return BufferInput<TreeInput>();
   case TabbedSentenceInput:
     return BufferInput<TabbedSentence>();
-  case ForestInputType:
-    return BufferInput<ForestInput>();
   default:
     TRACE_ERR("Unknown input type: " << m_inputType << "\n");
     return boost::shared_ptr<InputType>();
