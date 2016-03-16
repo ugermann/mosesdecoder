@@ -1,5 +1,20 @@
-cmake_minimum_required(VERSION 2.8.7)
+cmake_minimum_required(VERSION 2.8.8)
 project(mosesdecoder)
+
+# for FindIRSTLM.cmake
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
+
+
+# Set install prefix to use <MMT>/bin/ and <MMT>/lib/
+# ---------------------------------------------------
+#
+#if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+#  set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}" CACHE PATH "MMT install prefix" FORCE)
+#endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+
+
+
+
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
@@ -24,6 +39,7 @@ find_package(Boost REQUIRED COMPONENTS
 )
 
 find_package(ZLIB REQUIRED)
+find_package(IRSTLM REQUIRED)
 
 # note: this one should only apply to a single source file. 
 # moses/Parameter.cpp:460:16: error: ‘MOSES_VERSION_ID’ was not declared in this scope
@@ -41,8 +57,8 @@ add_definitions(-DMAX_NUM_FACTORS=4 -DKENLM_MAX_ORDER=6 -DWITH_THREADS -DBOOST_T
 # lazyness wins me this time.
 #
 # this points to the MMT/include folder now.
-set(IRSTLM_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/../../include/")
-set(IRSTLM_LIBRARIES "${CMAKE_SOURCE_DIR}/../../lib/libirstlm.so")
+#set(IRSTLM_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/../../include/")
+#set(IRSTLM_LIBRARIES "${CMAKE_SOURCE_DIR}/../../lib/libirstlm.so")
 
 # . is for #include<moses/...> style includes
 include_directories(${Boost_INCLUDE_DIRS} ${IRSTLM_INCLUDE_DIRS} .)
