@@ -3,6 +3,9 @@ project(mosesdecoder)
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+# to build shared libmoses.so with KenLM inside (probably needed for KenLM only)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
 # for KenLMFunctions.cmake
 #set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 include(cmake/KenLMFunctions.cmake)
@@ -291,6 +294,7 @@ contrib/other-builds/mmt/TranslationTask.cpp
 
 
 add_executable(moses ${MOSES_SRC} $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_util>)
+#add_library(moses SHARED ${MOSES_SRC} $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_util>)
 target_link_libraries(moses ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} ${IRSTLM_LIBRARIES} pthread)
 
 
