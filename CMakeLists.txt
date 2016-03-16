@@ -25,13 +25,16 @@ find_package(ZLIB REQUIRED)
 # note: this one should only apply to a single source file. 
 # moses/Parameter.cpp:460:16: error: ‘MOSES_VERSION_ID’ was not declared in this scope
 # TODO: the others should NOT recompile when we have a new revision.
-execute_process(COMMAND git describe --dirty OUTPUT_VARIABLE MOSES_VERSION_ID)
+execute_process(COMMAND git describe --dirty OUTPUT_VARIABLE MOSES_VERSION_ID OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # see also https://ccache.samba.org/
 
-# note: these should be on the moses level, they should not affect kenlm, ideally...
-add_definitions(-DMAX_NUM_FACTORS=4 -DKENLM_MAX_ORDER=6 -DWITH_THREADS -DBOOST_TEST_DYN_LINK -DMOSES_VERSION_ID="unknown-mmt-cmake" -DPT_UG -DLM_IRST)
+# TODO: these should be on the moses level, they should not affect kenlm, ideally...
+add_definitions(-DMAX_NUM_FACTORS=4 -DKENLM_MAX_ORDER=6 -DWITH_THREADS -DBOOST_TEST_DYN_LINK -DPT_UG -DLM_IRST)
 # -DMOSES_VERSION_ID="${MOSES_VERSION_ID}"
+
+# TODO: make scope clear: name define PARAMETER_CPP_MOSES_VERSION_ID
+set_source_files_properties(moses/Parameter.cpp PROPERTIES COMPILE_FLAGS -DMOSES_VERSION_ID=\\\"${MOSES_VERSION_ID}\\\")
 
 # TODO: this should come from a find_package(irstlm)
 # alas, IRSTLM does not define irstlm-config.cmake nor is there FindIRSTLM.cmake
