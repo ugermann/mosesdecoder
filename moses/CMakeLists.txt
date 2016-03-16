@@ -1,13 +1,185 @@
-project(moses)
+set(MOSES_MOSES_SRC
+AlignmentInfoCollection.cpp
+AlignmentInfo.cpp
+BaseManager.cpp
+BitmapContainer.cpp
+Bitmap.cpp
+Bitmaps.cpp
+ChartCellCollection.cpp
+ChartCell.cpp
+ChartHypothesisCollection.cpp
+ChartHypothesis.cpp
+ChartKBestExtractor.cpp
+ChartManager.cpp
+ChartParser.cpp
+ChartRuleLookupManager.cpp
+ChartTranslationOption.cpp
+ChartTranslationOptionList.cpp
+ChartTranslationOptions.cpp
+ConfusionNet.cpp
+DecodeGraph.cpp
+DecodeStep.cpp
+DecodeStepGeneration.cpp
+DecodeStepTranslation.cpp
+ExportInterface.cpp
+FactorCollection.cpp
+Factor.cpp
+FactorTypeSet.cpp
+FeatureVector.cpp
+FF/DecodeFeature.cpp
+FF/DistortionScoreProducer.cpp
+FF/DynamicCacheBasedLanguageModel.cpp
+FF/FeatureFunction.cpp
+FF/FFState.cpp
+FF/InputFeature.cpp
+FF/InternalTree.cpp
+FF/LexicalReordering/LexicalReordering.cpp
+FF/LexicalReordering/LexicalReorderingState.cpp
+FF/LexicalReordering/LexicalReorderingTable.cpp
+FF/LexicalReordering/ReorderingStack.cpp
+FF/LexicalReordering/SparseReordering.cpp
+FF/PhrasePenalty.cpp
+FF/SkeletonStatefulFF.cpp
+FF/SkeletonStatelessFF.cpp
+FF/StatefulFeatureFunction.cpp
+FF/StatelessFeatureFunction.cpp
+FF/UnknownWordPenaltyProducer.cpp
+FF/WordPenaltyProducer.cpp
+File.cpp
+FloydWarshall.cpp
+GenerationDictionary.cpp
+HypergraphOutput.cpp
+Hypothesis.cpp
+HypothesisStack.cpp
+HypothesisStackCubePruning.cpp
+HypothesisStackNormal.cpp
+Incremental.cpp
+InputFileStream.cpp
+InputPath.cpp
+InputType.cpp
+LatticeMBR.cpp
+LM/Backward.cpp
+LM/BackwardLMState.cpp
+LM/Base.cpp
+LM/BilingualLM.cpp
+LM/Implementation.cpp
+LM/IRST.cpp
+LM/Ken.cpp
+LM/MultiFactor.cpp
+LM/Remote.cpp
+LM/SingleFactor.cpp
+LM/SkeletonLM.cpp
+LVoc.cpp
+Manager.cpp
+mbr.cpp
+NonTerminal.cpp
+OutputFileStream.cpp
+Parameter.cpp
+parameters/AllOptions.cpp
+parameters/BookkeepingOptions.cpp
+parameters/ContextParameters.cpp
+parameters/CubePruningOptions.cpp
+parameters/InputOptions.cpp
+parameters/LMBR_Options.cpp
+parameters/MBR_Options.cpp
+parameters/NBestOptions.cpp
+parameters/OOVHandlingOptions.cpp
+parameters/OptionsBaseClass.cpp
+parameters/ReorderingOptions.cpp
+parameters/ReportingOptions.cpp
+parameters/SearchOptions.cpp
+parameters/ServerOptions.cpp
+parameters/SyntaxOptions.cpp
+PartialTranslOptColl.cpp
+PCNTools.cpp
+Phrase.cpp
+PP/CountsPhraseProperty.cpp
+PP/Factory.cpp
+PP/NonTermContextProperty.cpp
+PP/OrientationPhraseProperty.cpp
+PP/PhraseProperty.cpp
+PP/SourceLabelsPhraseProperty.cpp
+PP/SpanLengthPhraseProperty.cpp
+PP/TargetConstituentBoundariesLeftPhraseProperty.cpp
+PP/TargetConstituentBoundariesRightAdjacentPhraseProperty.cpp
+PP/TargetPreferencesPhraseProperty.cpp
+PrefixTreeMap.cpp
+Range.cpp
+ReorderingConstraint.cpp
+RuleCube.cpp
+RuleCubeItem.cpp
+RuleCubeQueue.cpp
+ScoreComponentCollection.cpp
+Search.cpp
+SearchCubePruning.cpp
+SearchNormal.cpp
+Sentence.cpp
+SentenceStats.cpp
+SquareMatrix.cpp
+StaticData.cpp
+TabbedSentence.cpp
+TargetPhraseCollection.cpp
+TargetPhrase.cpp
+ThreadPool.cpp
+Timer.cpp
+TranslationAnalysis.cpp
+TranslationModel/PhraseDictionary.cpp
+TranslationModel/PhraseDictionaryDynamicCacheBased.cpp
+TranslationModel/PhraseDictionaryTree.cpp
+TranslationModel/PhraseDictionaryTreeAdaptor.cpp
+PDTAimp.cpp
+TranslationModel/UG/generic/file_io/ug_stream.cpp
+TranslationModel/UG/generic/program_options/ug_get_options.cpp
+TranslationModel/UG/generic/program_options/ug_splice_arglist.cc
+TranslationModel/UG/generic/threading/ug_thread_pool.cc
+TranslationModel/UG/generic/threading/ug_thread_safe_counter.cc
+TranslationModel/UG/mm/num_read_write.cc
+TranslationModel/UG/mmsapt_align.cc
+TranslationModel/UG/mmsapt.cpp
+TranslationModel/UG/mm/tpt_pickler.cc
+TranslationModel/UG/mm/tpt_tightindex.cc
+TranslationModel/UG/mm/tpt_tokenindex.cc
+TranslationModel/UG/mm/ug_bitext.cc
+TranslationModel/UG/mm/ug_bitext_jstats.cc
+TranslationModel/UG/mm/ug_bitext_pstats.cc
+TranslationModel/UG/mm/ug_bitext_sampler.cc
+TranslationModel/UG/mm/ug_conll_record.cc
+TranslationModel/UG/mm/ug_corpus_token.cc
+TranslationModel/UG/mm/ug_deptree.cc
+TranslationModel/UG/mm/ug_http_client.cc
+TranslationModel/UG/mm/ug_im_bitext.cc
+TranslationModel/UG/mm/ug_lexical_reordering.cc
+TranslationModel/UG/mm/ug_load_primer.cc
+TranslationModel/UG/mm/ug_phrasepair.cc
+TranslationModel/UG/mm/ug_sampling_bias.cc
+TranslationModel/UG/mm/ug_tsa_array_entry.cc
+TranslationModel/UG/mm/ug_ttrack_base.cc
+TranslationModel/UG/mm/ug_ttrack_position.cc
+TranslationModel/UG/TargetPhraseCollectionCache.cc
+TranslationOptionCollectionConfusionNet.cpp
+TranslationOptionCollection.cpp
+TranslationOptionCollectionLattice.cpp
+TranslationOptionCollectionText.cpp
+TranslationOption.cpp
+TranslationOptionList.cpp
+TreeInput.cpp
+TrellisPathCollection.cpp
+TrellisPath.cpp
+Util.cpp
+Word.cpp
+WordLattice.cpp
+XmlOption.cpp
+)
 
-FILE(GLOB source_moses *.cpp)
-FILE(GLOB source_moses_ff FF/*.cpp)
-FILE(GLOB source_moses_ff_lexicalReordering FF/LexicalReordering/*.cpp)
-FILE(GLOB source_moses_ff_osm FF/OSM-Feature/*.cpp)
-FILE(GLOB source_moses_lm LM/*.cpp)
-FILE(GLOB source_moses_tm TranslationModel/*.cpp)
-FILE(GLOB source_moses_tm_compactPT TranslationModel/CompactPT/*.cpp)
-FILE(GLOB source_moses_tm_cky TranslationModel/CKYPlusParser/*.cpp)
+execute_process(COMMAND git describe --dirty OUTPUT_VARIABLE MOSES_VERSION_ID OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+set_source_files_properties(Parameter.cpp PROPERTIES COMPILE_FLAGS -DMOSES_VERSION_ID=\\\"${MOSES_VERSION_ID}\\\")
 
 
-add_library(biconcor ${biconcor_source})
+# Group these objects together for later use. 
+#
+# Given add_library(foo OBJECT ${my_foo_sources}),
+# refer to these objects as $<TARGET_OBJECTS:foo>
+#
+add_library(moses_moses OBJECT ${MOSES_MOSES_SRC})
+
