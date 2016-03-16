@@ -8,9 +8,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
 # Set install prefix to use <MMT>/bin/ and <MMT>/lib/
 # ---------------------------------------------------
 #
-#if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-#  set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}" CACHE PATH "MMT install prefix" FORCE)
-#endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}" CACHE PATH "MMT install prefix" FORCE)
+endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 
 # Set output paths to <MMT>/bin/ and <MMT>/lib/
@@ -20,6 +20,7 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_INSTALL_PREFIX}/lib)
 
 
 
+# maybe Decoder (using C++11) needs to link vs. C++11 stuff???
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # to build shared libmoses.so with KenLM inside (probably needed for KenLM only)
@@ -96,7 +97,9 @@ add_subdirectory(moses)
 #add_executable(moses-main ${MOSES_SRC} $<TARGET_OBJECTS:moses_moses> $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_util>)
 #target_link_libraries(moses-main ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} ${IRSTLM_LIBRARIES} pthread)
 
-add_library(moses SHARED ${MOSES_SRC} $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_util>)
+add_library(moses SHARED ${MOSES_SRC} $<TARGET_OBJECTS:moses_moses> $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_util>)
 target_link_libraries(moses ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} ${IRSTLM_LIBRARIES} pthread)
 
-
+add_executable(moses-main moses-cmd/Main.cpp)
+target_link_libraries(moses-main ${Boost_LIBRARIES} moses)
+link_directories(${mosesdecoder_BINARY_DIR}/moses)
