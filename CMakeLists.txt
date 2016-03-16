@@ -13,6 +13,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
 #endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 
+# Set output paths to <MMT>/bin/ and <MMT>/lib/
+# ---------------------------------------------
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_INSTALL_PREFIX}/bin)
+set(LIBRARY_OUTPUT_PATH ${CMAKE_INSTALL_PREFIX}/lib)
 
 
 
@@ -93,6 +97,6 @@ add_subdirectory(moses)
 #target_link_libraries(moses-main ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} ${IRSTLM_LIBRARIES} pthread)
 
 add_library(moses SHARED ${MOSES_SRC} $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_util>)
-#target_link_libraries(moses ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} ${IRSTLM_LIBRARIES} pthread)
+target_link_libraries(moses ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} ${IRSTLM_LIBRARIES} pthread)
 
 
