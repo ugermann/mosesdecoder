@@ -81,8 +81,9 @@ namespace Moses
     //   output factor
     // * Don't use features that depend on generation steps that won't be run
     //   yet at extract time
-//    VERBOSE(2,"Mmsapt::Mmsapt(string const& line) calling SetFeaturesToApply();" << std::endl);
-//    SetFeaturesToApply();
+
+    // moved the call of SetFeaturesToApply() in the function Load, as required
+
     // Register();
   }
 
@@ -422,7 +423,6 @@ namespace Moses
   Mmsapt::
   Load(AllOptions::ptr const& opts)
   {
-    VERBOSE(2,"Mmsapt::Load(AllOptions::ptr const& opts) calling SetFeaturesToApply();" << std::endl);
     SetFeaturesToApply();
     Load(opts, true);
   }
