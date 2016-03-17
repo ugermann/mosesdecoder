@@ -81,7 +81,9 @@ namespace Moses
     //   output factor
     // * Don't use features that depend on generation steps that won't be run
     //   yet at extract time
-    SetFeaturesToApply();
+
+    // moved the call of SetFeaturesToApply() in the function Load, as required
+
     // Register();
   }
 
@@ -421,6 +423,7 @@ namespace Moses
   Mmsapt::
   Load(AllOptions::ptr const& opts)
   {
+    SetFeaturesToApply();
     Load(opts, true);
   }
 
