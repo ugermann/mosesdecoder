@@ -81,7 +81,8 @@ namespace Moses
     //   output factor
     // * Don't use features that depend on generation steps that won't be run
     //   yet at extract time
-    SetFeaturesToApply();
+//    VERBOSE(2,"Mmsapt::Mmsapt(string const& line) calling SetFeaturesToApply();" << std::endl);
+//    SetFeaturesToApply();
     // Register();
   }
 
@@ -421,6 +422,8 @@ namespace Moses
   Mmsapt::
   Load(AllOptions::ptr const& opts)
   {
+    VERBOSE(2,"Mmsapt::Load(AllOptions::ptr const& opts) calling SetFeaturesToApply();" << std::endl);
+    SetFeaturesToApply();
     Load(opts, true);
   }
 
@@ -605,6 +608,8 @@ namespace Moses
     tp->SetAlignTerm(pool.aln);
     tp->GetScoreBreakdown().Assign(this, fvals);
     // Evaluate with all features that can be computed using available factors
+    VERBOSE(2,"  TargetPhrase*  Mmsapt::  mkTPhrase(ttasksptr const& ttask,            Phrase const& src,           PhrasePair<Token>* fix,            PhrasePair<Token>* dyn,            SPTR<Bitext<Token> > const& dynbt) const" << std::endl);
+    VERBOSE(2,"  calling tp->EvaluateInIsolation(src, m_featuresToApply)" << std::endl);
     tp->EvaluateInIsolation(src, m_featuresToApply);
 
 #ifndef NO_MOSES
