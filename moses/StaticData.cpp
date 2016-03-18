@@ -821,7 +821,7 @@ void StaticData::NoCache()
 
 std::map<std::string, std::string>
 StaticData
-::OverrideFeatureNames()
+::OverrideFeatureNames() const
 {
   std::map<std::string, std::string> ret;
 

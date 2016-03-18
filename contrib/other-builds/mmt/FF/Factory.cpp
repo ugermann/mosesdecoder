@@ -141,50 +141,54 @@ namespace Moses
 class FeatureFactory
 {
 public:
+  /** Uses the given functor for feature setup. */
+  FeatureFactory(FeatureSetup &featureSetup): DefaultSetup(featureSetup) {}
   virtual ~FeatureFactory() {}
 
   virtual void Create(const std::string &line) = 0;
 
 protected:
-  template <class F> static void DefaultSetup(F *feature);
-
-  FeatureFactory() {}
+  FeatureSetup& DefaultSetup;
 };
 
-template <class F>
-void
-FeatureFactory
-::DefaultSetup(F *feature)
-{
-  FeatureFunction::Register(feature);
 
-  StaticData &static_data = StaticData::InstanceNonConst();
-  const std::string &featureName = feature->GetScoreProducerDescription();
-  std::vector<float> weights = static_data.GetParameter()->GetWeights(featureName);
+/**
+ * Default functor for registering features globally in moses using StaticData and FeatureFunction statics.
+ */
+class FeatureDefaultSetup : public FeatureSetup {
+public:
+  virtual void operator()(FeatureFunction *feature)
+  {
+    FeatureFunction::Register(feature);
+
+    StaticData &static_data = StaticData::InstanceNonConst();
+    const std::string &featureName = feature->GetScoreProducerDescription();
+    std::vector<float> weights = static_data.GetParameter()->GetWeights(featureName);
 
 
-  if (feature->GetNumScoreComponents()) {
-    if (weights.size() == 0) {
-      weights = feature->DefaultWeights();
+    if (feature->GetNumScoreComponents()) {
       if (weights.size() == 0) {
-        TRACE_ERR("WARNING: No weights specified in config file for FF "
-                  << featureName << ". This FF does not supply default values.\n"
-                  << "WARNING: Auto-initializing all weights for this FF to 1.0");
-        weights.assign(feature->GetNumScoreComponents(),1.0);
-      } else {
-        VERBOSE(2,"WARNING: No weights specified in config file for FF "
-                << featureName << ". Using default values supplied by FF.");
+        weights = feature->DefaultWeights();
+        if (weights.size() == 0) {
+          TRACE_ERR("WARNING: No weights specified in config file for FF "
+                    << featureName << ". This FF does not supply default values.\n"
+                    << "WARNING: Auto-initializing all weights for this FF to 1.0");
+          weights.assign(feature->GetNumScoreComponents(),1.0);
+        } else {
+          VERBOSE(2,"WARNING: No weights specified in config file for FF "
+                    << featureName << ". Using default values supplied by FF.");
+        }
       }
-    }
-    UTIL_THROW_IF2(weights.size() != feature->GetNumScoreComponents(),
-                   "FATAL ERROR: Mismatch in number of features and number "
-                   << "of weights for Feature Function " << featureName
-                   << " (features: " << feature->GetNumScoreComponents()
-                   << " vs. weights: " << weights.size() << ")");
-    static_data.SetWeights(feature, weights);
-  } else if (feature->IsTuneable())
-    static_data.SetWeights(feature, weights);
-}
+      UTIL_THROW_IF2(weights.size() != feature->GetNumScoreComponents(),
+                     "FATAL ERROR: Mismatch in number of features and number "
+                     << "of weights for Feature Function " << featureName
+                     << " (features: " << feature->GetNumScoreComponents()
+                     << " vs. weights: " << weights.size() << ")");
+      static_data.SetWeights(feature, weights);
+    } else if (feature->IsTuneable())
+      static_data.SetWeights(feature, weights);
+  }
+};
 
 namespace
 {
@@ -193,6 +197,8 @@ template <class F>
 class DefaultFeatureFactory : public FeatureFactory
 {
 public:
+  DefaultFeatureFactory(FeatureSetup &featureSetup): FeatureFactory(featureSetup) {}
+
   void Create(const std::string &line) {
     DefaultSetup(new F(line));
   }
@@ -201,6 +207,8 @@ public:
 class KenFactory : public FeatureFactory
 {
 public:
+  KenFactory(FeatureSetup &featureSetup): FeatureFactory(featureSetup) {}
+
   void Create(const std::string &line) {
     DefaultSetup(ConstructKenLM(line));
   }
@@ -209,6 +217,8 @@ public:
 class ReloadingFactory : public FeatureFactory
 {
 public:
+  ReloadingFactory(FeatureSetup &featureSetup): FeatureFactory(featureSetup) {}
+
   void Create(const std::string &line) {
     DefaultSetup(ConstructReloadingLM(line));
   }
@@ -218,10 +228,23 @@ public:
 
 FeatureRegistry::FeatureRegistry()
 {
+  featureSetup_.reset(new FeatureDefaultSetup());
+  AddFactories(*featureSetup_);
+}
+
+// TODO: use shared_ptr
+FeatureRegistry::FeatureRegistry(SPTR<FeatureSetup> featureSetup)
+{
+  featureSetup_ = featureSetup;
+  AddFactories(*featureSetup_);
+}
+
+void FeatureRegistry::AddFactories(FeatureSetup& setup)
+{
 // Feature with same name as class
-#define MOSES_FNAME(name) Add(#name, new DefaultFeatureFactory< name >());
+#define MOSES_FNAME(name) Add(#name, new DefaultFeatureFactory< name >(setup));
 // Feature with different name than class.
-#define MOSES_FNAME2(name, type) Add(name, new DefaultFeatureFactory< type >());
+#define MOSES_FNAME2(name, type) Add(name, new DefaultFeatureFactory< type >(setup));
 
 //  MOSES_FNAME2("PhraseDictionaryBinary", PhraseDictionaryTreeAdaptor);
 //  MOSES_FNAME(PhraseDictionaryOnDisk);
@@ -344,8 +367,8 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME2("OxSourceFactoredLM", SourceOxLM);
   MOSES_FNAME2("OxTreeLM", OxLM<oxlm::FactoredTreeLM>);
 #endif
-  Add("ReloadingLM", new ReloadingFactory());
-  Add("KENLM", new KenFactory());
+  Add("ReloadingLM", new ReloadingFactory(setup));
+  Add("KENLM", new KenFactory(setup));
   MOSES_FNAME2("MUXLM", LanguageModelMultiplexer);
 }
 

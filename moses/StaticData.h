@@ -354,7 +354,7 @@ public:
   bool LoadWeightSettings();
   bool LoadAlternateWeightSettings();
 
-  std::map<std::string, std::string> OverrideFeatureNames();
+  std::map<std::string, std::string> OverrideFeatureNames() const;
   void OverrideFeatures();
 
   const FeatureRegistry &GetFeatureRegistry() const {
