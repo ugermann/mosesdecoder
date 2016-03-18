@@ -1,3 +1,7 @@
+
+# documented as necessary for PhraseDictionaryTree, which MMT doesn't use (but who knows what else depends on these flags?)
+add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGE_FILES)
+
 set(MOSES_MOSES_SRC
 AlignmentInfoCollection.cpp
 AlignmentInfo.cpp

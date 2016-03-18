@@ -45,6 +45,8 @@ find_package(IRSTLM REQUIRED)
 add_definitions(-DMAX_NUM_FACTORS=4 -DKENLM_MAX_ORDER=6 -DWITH_THREADS -DBOOST_TEST_DYN_LINK -DPT_UG -DLM_IRST)
 # note: MOSES_VERSION_ID is defined in moses/CMakeLists.txt
 
+# "use TRACE_ENABLE to turn off output of any debugging info" (moses/Util.h)
+add_definitions(-DTRACE_ENABLE=1)
 
 # . is for #include<moses/...> style includes
 include_directories(${Boost_INCLUDE_DIRS} ${IRSTLM_INCLUDE_DIRS} .)
