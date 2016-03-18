@@ -111,6 +111,7 @@ LM/Implementation.cpp
 LM/IRST.cpp
 LM/Ken.cpp
 LM/MultiFactor.cpp
+LM/Multiplexer.cpp
 LM/Remote.cpp
 LM/SingleFactor.cpp
 LM/SkeletonLM.cpp

@@ -93,6 +93,7 @@
 #include "moses/TranslationModel/UG/mmsapt.h"
 #endif
 
+#include "moses/LM/Multiplexer.h"
 #include "moses/LM/Ken.h"
 #include "moses/LM/Reloading.h"
 #ifdef LM_IRST
@@ -345,6 +346,7 @@ FeatureRegistry::FeatureRegistry()
 #endif
   Add("ReloadingLM", new ReloadingFactory());
   Add("KENLM", new KenFactory());
+  MOSES_FNAME2("MUXLM", LanguageModelMultiplexer);
 }
 
 FeatureRegistry::~FeatureRegistry()
