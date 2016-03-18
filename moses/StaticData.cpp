@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "moses/FF/Factory.h"
+#include "moses/PP/Factory.h"
 #include "TypeDef.h"
 #include "moses/FF/WordPenaltyProducer.h"
 #include "moses/FF/UnknownWordPenaltyProducer.h"
@@ -70,6 +71,8 @@ StaticData::StaticData()
   : m_options(new AllOptions)
   , m_requireSortingAfterSourceContext(false)
   , m_currentWeightSetting("default")
+  , m_registry(new FeatureRegistry)
+  , m_phrasePropertyFactory(new PhrasePropertyFactory)
   , m_treeStructure(NULL)
 {
   Phrase::InitializeMemPool();
@@ -109,13 +112,13 @@ StaticData
     = featureNameOverride.find(feature);
     if (iter == featureNameOverride.end()) {
       // feature name not override
-      m_registry.Construct(feature, line);
+      m_registry->Construct(feature, line);
     } else {
       // replace feature name with new name
       string newName = iter->second;
       feature = newName;
       string newLine = Join(" ", toks);
-      m_registry.Construct(newName, newLine);
+      m_registry->Construct(newName, newLine);
     }
   }
 

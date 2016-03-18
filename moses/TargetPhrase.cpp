@@ -33,6 +33,7 @@
 #include "InputPath.h"
 #include "TranslationTask.h"
 #include "moses/TranslationModel/PhraseDictionary.h"
+#include "moses/PP/Factory.h"
 #include <boost/foreach.hpp>
 
 using namespace std;

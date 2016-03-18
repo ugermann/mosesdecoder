@@ -41,8 +41,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "Parameter.h"
 #include "SentenceStats.h"
 #include "ScoreComponentCollection.h"
-#include "moses/FF/Factory.h"
-#include "moses/PP/Factory.h"
 
 #include "moses/parameters/AllOptions.h"
 #include "moses/parameters/BookkeepingOptions.h"
@@ -56,6 +54,9 @@ class DecodeStep;
 
 class DynamicCacheBasedLanguageModel;
 class PhraseDictionaryDynamicCacheBased;
+
+class FeatureRegistry;
+class PhrasePropertyFactory;
 
 typedef std::pair<std::string, float> UnknownLHSEntry;
 typedef std::vector<UnknownLHSEntry>  UnknownLHSList;
@@ -123,8 +124,9 @@ protected:
   // bool m_defaultNonTermOnlyForEmptyRange;
   // S2TParsingAlgorithm m_s2tParsingAlgorithm;
 
-  FeatureRegistry m_registry;
-  PhrasePropertyFactory m_phrasePropertyFactory;
+  // these are forward declared
+  boost::scoped_ptr<FeatureRegistry> m_registry;
+  boost::scoped_ptr<PhrasePropertyFactory> m_phrasePropertyFactory;
 
   StaticData();
 
@@ -356,11 +358,11 @@ public:
   void OverrideFeatures();
 
   const FeatureRegistry &GetFeatureRegistry() const {
-    return m_registry;
+    return *m_registry;
   }
 
   const PhrasePropertyFactory &GetPhrasePropertyFactory() const {
-    return m_phrasePropertyFactory;
+    return *m_phrasePropertyFactory;
   }
 
   /** check whether we should be using the old code to support binary phrase-table.
