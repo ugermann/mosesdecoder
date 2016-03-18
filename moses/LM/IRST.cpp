@@ -112,6 +112,9 @@ LanguageModelIRST::LanguageModelIRST(const std::string &line)
   }
 */
 
+      // must be 0 as default if 'order' not overridden from feature line.
+      this->m_nGramOrder = 0;
+
       m_id = "default";
       m_weight_map_normalization = false;
       m_weight_map_limit = 0; //default is 0, i.e. no limits, take all available weights
