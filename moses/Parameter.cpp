@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "util/string_stream.hh"
 #include "util/exception.hh"
 #include "util/random.hh"
+#include "FF/Factory.h"
 #include <boost/program_options.hpp>
 
 #ifdef HAVE_XMLRPC_C
@@ -273,6 +274,7 @@ Parameter::Parameter()
   AddParam(misc_opts,"lm-interpolation-weights", "A key-value map for dynamic LM interpolation (via IRSTLM).");
   AddParam(misc_opts,"context-window",
            "Context window (in words) for context-sensitive translation: {+|-|+-}<number>.");
+  AddParam(misc_opts,"muxlm", "Multiplexed language model features should be in this section (see MUXLM).");
 
   // Compact phrase table and reordering table.
   po::options_description cpt_opts("Options when using compact phrase and reordering tables.");
