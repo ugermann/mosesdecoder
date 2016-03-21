@@ -50,6 +50,9 @@ target_link_libraries(lmplz ${Boost_LIBRARIES} pthread)
 # Group executables together
 set_target_properties(lmplz PROPERTIES FOLDER executables)
 
+# Install the executable files
+install(TARGETS lmplz DESTINATION bin)
+
 if(BUILD_TESTING)
 
   # Explicitly list the Boost test files to be compiled
