@@ -40,6 +40,7 @@ find_package(Boost REQUIRED COMPONENTS
 
 find_package(ZLIB REQUIRED)
 find_package(IRSTLM REQUIRED)
+find_package(GooglePerftools)  # for libtcmalloc_minimal
 
 
 add_definitions(-DMAX_NUM_FACTORS=4 -DKENLM_MAX_ORDER=6 -DWITH_THREADS -DBOOST_TEST_DYN_LINK -DPT_UG -DLM_IRST)
@@ -77,5 +78,5 @@ add_library(moses SHARED ${MOSES_SRC} $<TARGET_OBJECTS:moses_moses> $<TARGET_OBJ
 target_link_libraries(moses ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} ${IRSTLM_LIBRARIES} pthread)
 
 add_executable(moses-main moses-cmd/Main.cpp)
-target_link_libraries(moses-main ${Boost_LIBRARIES} moses)
+target_link_libraries(moses-main ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES} moses)
 link_directories(${mosesdecoder_BINARY_DIR}/moses)  # link against libmoses.so
