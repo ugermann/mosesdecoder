@@ -209,7 +209,6 @@ TranslationModel/UG/mm/ug_im_bitext.cc
 TranslationModel/UG/mm/ug_lexical_reordering.cc
 TranslationModel/UG/mm/ug_load_primer.cc
 TranslationModel/UG/mm/ug_phrasepair.cc
-TranslationModel/UG/mm/ug_sampling_bias.cc
 TranslationModel/UG/mm/ug_tsa_array_entry.cc
 TranslationModel/UG/mm/ug_ttrack_base.cc
 TranslationModel/UG/mm/ug_ttrack_position.cc
@@ -219,6 +218,7 @@ TranslationModel/UG/TargetPhraseCollectionCache.cc
 set(MOSES_TM_UG_MMSAPT_SRC
 TranslationModel/UG/mmsapt.cpp
 TranslationModel/UG/mm/ug_bitext_sampler.cc
+TranslationModel/UG/mm/ug_sampling_bias.cc
 )
 
 execute_process(COMMAND git describe --dirty WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE MOSES_VERSION_ID OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -243,7 +243,7 @@ add_library(moses_tm_ug OBJECT ${MOSES_TM_UG_SRC})
 # * util::WallTime() from util/usage.cc
 # * util::ToString() from util/integer_to_string.cc
 
-add_library(moses_basic_utils OBJECT ../util/exception.cc ../util/integer_to_string.cc ../util/usage.cc Timer.cpp)
+add_library(moses_basic_utils OBJECT ../util/exception.cc ../util/integer_to_string.cc ../util/usage.cc)
 
 set(MTT_EXECUTABLES mtt-build mmlex-build symal2mam)
 
