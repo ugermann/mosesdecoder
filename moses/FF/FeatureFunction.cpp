@@ -3,6 +3,8 @@
 #include "util/exception.hh"
 
 #include "FeatureFunction.h"
+#include "StatefulFeatureFunction.h"
+#include "StatelessFeatureFunction.h"
 #include "moses/Hypothesis.h"
 #include "moses/Manager.h"
 #include "moses/TranslationOption.h"
@@ -72,6 +74,8 @@ FeatureFunction::
 Register(FeatureFunction* ff)
 {
   ScoreComponentCollection::RegisterScoreProducer(ff);
+  StatefulFeatureFunction::RegisterStatefulFeatureFunction(ff);
+  StatelessFeatureFunction::RegisterStatelessFeatureFunction(ff);
   s_staticColl.push_back(ff);
 }
 

@@ -24,8 +24,14 @@ public:
     return m_statelessFFs;
   }
 
-  /** registerNow: register as a stateless FF. This is independent from FeatureFunction::Register() called in FF/Factory.cpp. */
-  StatelessFeatureFunction(const std::string &line, bool registerNow = true);
+  static void RegisterStatelessFeatureFunction(const FeatureFunction* ff) {
+    const StatelessFeatureFunction* sff = dynamic_cast<const StatelessFeatureFunction*>(ff);
+    if(sff != NULL)
+      m_statelessFFs.push_back(sff);
+  }
+
+
+  StatelessFeatureFunction(const std::string &line);
   StatelessFeatureFunction(size_t numScoreComponents, const std::string &line);
 
   /**
