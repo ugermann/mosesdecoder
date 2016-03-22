@@ -11,6 +11,8 @@
 namespace Moses
 {
 
+class ScoreComponentCollection;
+
 /**
  * A wrapper class for several language models of any type. Enables various interpolation functions.
  *
@@ -19,7 +21,7 @@ namespace Moses
 class LanguageModelMultiplexer : public LanguageModelSingleFactor
 {
 private:
-  typedef std::vector<float> Weights;
+  typedef ScoreComponentCollection Weights;
 
 public:
   LanguageModelMultiplexer(const std::string &line, bool registerNow = true);

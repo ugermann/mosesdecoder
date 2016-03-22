@@ -277,11 +277,6 @@ void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore,
 {
   Weights& weights = *weights_.get(); // thread-specific weights
 
-  // TODO: cache this.
-  ScoreComponentCollection weighting(features_.size());
-  weighting.Assign((size_t) 0, weights);
-
-
   ScoreComponentCollection fullScores(features_.size());
   ScoreComponentCollection ngramScores(features_.size());
 
@@ -297,8 +292,8 @@ void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore,
   }
 
   // TODO: currently log-linear
-  fullScore = fullScores.GetWeightedScore(weighting);
-  ngramScore = ngramScores.GetWeightedScore(weighting);
+  fullScore = fullScores.GetWeightedScore(weights);
+  ngramScore = ngramScores.GetWeightedScore(weights);
 }
 
 FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const
@@ -317,16 +312,12 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
     ret->states[i] = features_[i]->EvaluateWhenApplied(hypo, in_state.states[i], &score);
   }
 
-  // TODO: cache this.
-  ScoreComponentCollection weighting(features_.size());
-  weighting.Assign((size_t) 0, weights);
-
   // TODO: currently log-linear
   //out->Assign(this, score.GetWeightedScore(weighting));
 
   std::vector<float> scores;
   scores.resize(this->GetNumScoreComponents());
-  scores[0] = score.GetWeightedScore(weighting);
+  scores[0] = score.GetWeightedScore(weights);
   scores[1] = 0.0;
   if(OOVFeatureEnabled()) {
     UTIL_THROW2("OOV feature is not implemented yet");
@@ -343,7 +334,8 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
 void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
 {
   // this is called from several different threads and hence it must be thread-safe.
-  weights_.reset(new Weights());
+  weights_.reset(new Weights(features_.size()));
+  std::vector<float> new_weights;
   Weights& weights = *weights_.get();
 
   // also, I would like two weights to be tuned.
@@ -379,12 +371,13 @@ void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
 
   // first feature is background LM
   XVERBOSE(2, "MUXLM: weight_background = " << (1.0f - alpha) << "\n");
-  weights.push_back(1.0f - alpha);
+  new_weights.push_back(1.0f - alpha);
   // next features are adaptive LMs
   for(size_t i = 0; i < adaptive_.size(); i++) {
     XVERBOSE(2, "MUXLM: weight[" << adaptive_[i]->GetScoreProducerDescription() << "] = " << weight_map[adaptive_[i]->GetScoreProducerDescription()] << "\n");
-    weights.push_back(weight_map[adaptive_[i]->GetScoreProducerDescription()]);
+    new_weights.push_back(weight_map[adaptive_[i]->GetScoreProducerDescription()]);
   }
+  weights.Assign((size_t) 0, new_weights);
 }
 
 void LanguageModelMultiplexer::normalize_weights(std::map<std::string, float>& map, float alpha)
