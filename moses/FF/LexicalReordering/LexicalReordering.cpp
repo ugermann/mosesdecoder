@@ -17,7 +17,7 @@ namespace Moses
 {
 LexicalReordering::
 LexicalReordering(const std::string &line)
-  : StatefulFeatureFunction(line,false)
+  : StatefulFeatureFunction(line, /* registerNow = */ true)
 {
   VERBOSE(1, "Initializing Lexical Reordering Feature.." << std::endl);
 

@@ -27,7 +27,8 @@ public:
     return m_statefulFFs;
   }
 
-  StatefulFeatureFunction(const std::string &line, bool registerNow);
+  /** registerNow: register as a stateful FF. This is independent from FeatureFunction::Register() called in FF/Factory.cpp. */
+  StatefulFeatureFunction(const std::string &line, bool registerNow = true);
   StatefulFeatureFunction(size_t numScoreComponents, const std::string &line);
 
   /**

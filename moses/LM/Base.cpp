@@ -34,7 +34,7 @@ namespace Moses
 {
 
 LanguageModel::LanguageModel(const std::string &line) :
-  StatefulFeatureFunction(line, /* registerNow = */ false),
+  StatefulFeatureFunction(line, /* registerNow = */ true),
   m_enableOOVFeature(false)
 {
   // load m_enableOOVFeature via SetParameter() first

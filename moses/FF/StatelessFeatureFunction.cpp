@@ -7,9 +7,10 @@ std::vector<const StatelessFeatureFunction*> StatelessFeatureFunction::m_statele
 
 StatelessFeatureFunction
 ::StatelessFeatureFunction(const std::string &line, bool registerNow)
-  : FeatureFunction(line, registerNow)
+  : FeatureFunction(line)
 {
-  m_statelessFFs.push_back(this);
+  if(registerNow)
+    m_statelessFFs.push_back(this);
 }
 
 StatelessFeatureFunction

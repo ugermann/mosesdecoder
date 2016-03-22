@@ -45,7 +45,7 @@ void FeatureFunction::SetupAll(TranslationTask const& ttask)
 }
 
 FeatureFunction::
-FeatureFunction(const std::string& line, bool registerNow)
+FeatureFunction(const std::string& line)
   : m_tuneable(true)
   , m_requireSortingAfterSourceContext(false)
   , m_verbosity(std::numeric_limits<std::size_t>::max())
@@ -54,11 +54,9 @@ FeatureFunction(const std::string& line, bool registerNow)
 {
   m_numTuneableComponents = m_numScoreComponents;
   ParseLine(line);
-  // if (registerNow) Register(); // now done in FeatureFactory::DefaultSetup()
-  // TO DO: eliminate the registerNow parameter
 }
 
-FeatureFunction::FeatureFunction(size_t numScoreComponents, const std::string& line, bool registerNow)
+FeatureFunction::FeatureFunction(size_t numScoreComponents, const std::string& line)
   : m_tuneable(true)
   , m_requireSortingAfterSourceContext(false)
   , m_verbosity(std::numeric_limits<std::size_t>::max())
@@ -67,8 +65,6 @@ FeatureFunction::FeatureFunction(size_t numScoreComponents, const std::string& l
 {
   m_numTuneableComponents = m_numScoreComponents;
   ParseLine(line);
-  // if (registerNow) Register(); // now done in FeatureFactory::DefaultSetup()
-  // TO DO: eliminate the registerNow parameter
 }
 
 void
