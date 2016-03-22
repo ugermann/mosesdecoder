@@ -188,8 +188,6 @@ public:
     } else if (feature->IsTuneable())
       static_data.SetWeights(feature, weights);
   }
-
-  virtual bool RegisterNow() { return true; /* register as Stateful/Stateless FF in moses. */ }
 };
 
 namespace
@@ -202,7 +200,7 @@ public:
   DefaultFeatureFactory(FeatureSetup &featureSetup): FeatureFactory(featureSetup) {}
 
   void Create(const std::string &line) {
-    DefaultSetup(new F(line, DefaultSetup.RegisterNow()));
+    DefaultSetup(new F(line));
   }
 };
 
@@ -212,7 +210,7 @@ public:
   KenFactory(FeatureSetup &featureSetup): FeatureFactory(featureSetup) {}
 
   void Create(const std::string &line) {
-    DefaultSetup(ConstructKenLM(line, DefaultSetup.RegisterNow()));
+    DefaultSetup(ConstructKenLM(line));
   }
 };
 
@@ -222,7 +220,7 @@ public:
   ReloadingFactory(FeatureSetup &featureSetup): FeatureFactory(featureSetup) {}
 
   void Create(const std::string &line) {
-    DefaultSetup(ConstructReloadingLM(line, DefaultSetup.RegisterNow()));
+    DefaultSetup(ConstructReloadingLM(line));
   }
 };
 
