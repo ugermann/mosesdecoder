@@ -18,6 +18,9 @@ namespace Moses
  */
 class LanguageModelMultiplexer : public LanguageModelSingleFactor
 {
+private:
+  typedef std::vector<float> Weights;
+
 public:
   LanguageModelMultiplexer(const std::string &line, bool registerNow = true);
   ~LanguageModelMultiplexer();
@@ -66,7 +69,7 @@ protected:
   Function function_;  ///< combination function to be performed on the LMs
   std::string background_lm_;  ///< feature name of background LM
 
-  boost::thread_specific_ptr<std::vector<float> > weights_; ///< feature weights, specified dynamically for each sentence
+  boost::thread_specific_ptr<Weights> weights_; ///< feature weights, specified dynamically for each sentence
   std::vector<LanguageModel *> features_; ///< list of sub-LM FeatureFunctions
 
   LanguageModel* background_; ///< background LM

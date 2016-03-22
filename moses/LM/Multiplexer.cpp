@@ -179,9 +179,10 @@ LanguageModelMultiplexer::initialize_features()
 
 void LanguageModelMultiplexer::Load(AllOptions::ptr const &opts) {
   // we need to pass this call through to all sub-models
-  for (std::vector<LanguageModel *>::iterator it = features_.begin(); it != features_.end(); ++it) {
-    (*it)->SetIndex(this->GetIndex()); // make sub-LMs produce scores where we (MUXLM) do. Too early to do in c'tor, we don't know our index there.
-    (*it)->Load(opts);
+  for (size_t i = 0; i < features_.size(); i++) {
+    UTIL_THROW_IF2(features_[i]->GetNumScoreComponents() != 1, "MUXLM only supports FFs with 1 score component");
+    features_[i]->SetIndex(i);
+    features_[i]->Load(opts);
   }
 }
 
@@ -274,26 +275,35 @@ EvaluateInIsolation(Phrase const& source, TargetPhrase const& targetPhrase,
 
 void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore, float &ngramScore, std::size_t &oovCount) const
 {
-  std::vector<float>& weights = *weights_.get(); // thread-specific weights
+  Weights& weights = *weights_.get(); // thread-specific weights
 
-  fullScore = 0;
-  ngramScore = 0;
+  // TODO: cache this.
+  ScoreComponentCollection weighting(features_.size());
+  weighting.Assign((size_t) 0, weights);
+
+
+  ScoreComponentCollection fullScores(features_.size());
+  ScoreComponentCollection ngramScores(features_.size());
+
   oovCount = phrase.GetSize();
 
   float full, ngram;
   size_t oovs;
   for(size_t i = 0; i < features_.size(); i++) {
     features_[i]->CalcScore(phrase, full, ngram, oovs);
-    // TODO: currently log-linear
-    fullScore += full * weights[i];
-    ngramScore += ngram * weights[i];
+    fullScores.Assign(i, fullScore);
+    ngramScores.Assign(i, ngramScore);
     oovCount = std::min(oovs, oovCount);
   }
+
+  // TODO: currently log-linear
+  fullScore = fullScores.GetWeightedScore(weighting);
+  ngramScore = ngramScores.GetWeightedScore(weighting);
 }
 
 FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const
 {
-  std::vector<float>& weights = *weights_.get(); // thread-specific weights
+  Weights& weights = *weights_.get(); // thread-specific weights
   const MuxLMState &in_state = static_cast<const MuxLMState&>(*ps);
   MuxLMState *ret = new MuxLMState(features_.size());
 
@@ -302,16 +312,27 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
     return ret;
   }
 
-  ScoreComponentCollection score;
+  ScoreComponentCollection score(features_.size());
   for(size_t i = 0; i < features_.size(); i++) {
-    score.ZeroAll();
-    XVERBOSE(3, "LM " << i << " before score[" << this->GetIndex() << "] = " << score.GetScoresVector()[this->GetIndex() + 0] << "\n");
     ret->states[i] = features_[i]->EvaluateWhenApplied(hypo, in_state.states[i], &score);
-    XVERBOSE(3, "LM " << i << " obtained score[" << this->GetIndex() << "] = " << score.GetScoresVector()[this->GetIndex() + 0] << "\n");
-    score.MultiplyEquals(weights[i]); // TODO: currently log-linear
-    XVERBOSE(3, "LM " << i << " weighted score[" << this->GetIndex() << "] = " << score.GetScoresVector()[this->GetIndex() + 0] << "\n");
-    out->PlusEquals(score);
   }
+
+  // TODO: cache this.
+  ScoreComponentCollection weighting(features_.size());
+  weighting.Assign((size_t) 0, weights);
+
+  // TODO: currently log-linear
+  //out->Assign(this, score.GetWeightedScore(weighting));
+
+  std::vector<float> scores;
+  scores.resize(this->GetNumScoreComponents());
+  scores[0] = score.GetWeightedScore(weighting);
+  scores[1] = 0.0;
+  if(OOVFeatureEnabled()) {
+    UTIL_THROW2("OOV feature is not implemented yet");
+    scores[2] = 0;
+  }
+  out->PlusEquals(this, scores);
 
   XVERBOSE(3, "MUXLM total score[" << this->GetIndex() << "] = " << out->GetScoresVector()[this->GetIndex() + 0] << "\n");
 
@@ -322,9 +343,8 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
 void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
 {
   // this is called from several different threads and hence it must be thread-safe.
-  weights_.reset(new std::vector<float>());
-  std::vector<float>& weights = *weights_.get();
-  // don't forget background lm.
+  weights_.reset(new Weights());
+  Weights& weights = *weights_.get();
 
   // also, I would like two weights to be tuned.
   // hack: add one weight, which we always output as 0 to moses, but ask for the value and use it ourselves.
