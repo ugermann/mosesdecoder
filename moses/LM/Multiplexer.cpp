@@ -4,6 +4,11 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <map>
+#include <valarray>
+#include <numeric>
+#include <algorithm>
+#include <limits>
+#include <boost/math/special_functions/log1p.hpp>
 
 #include "moses/StaticData.h"
 #include "moses/FactorCollection.h"
@@ -27,13 +32,13 @@ namespace Moses
 class Interpolator : public ScoreComponentCollection {
 public:
   Interpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
-      ScoreComponentCollection(denseVectorSize), weights_(weights)
+      ScoreComponentCollection(denseVectorSize), m_weights(weights)
   {}
 
   virtual float GetInterpolatedScore() = 0;
 
 protected:
-  const ScoreComponentCollection& weights_;
+  const ScoreComponentCollection& m_weights;
 };
 
 /**
@@ -46,7 +51,7 @@ public:
   {}
 
   virtual float GetInterpolatedScore() {
-    return GetWeightedScore(this->weights_);
+    return GetWeightedScore(this->m_weights);
   }
 };
 
@@ -60,8 +65,45 @@ public:
   {}
 
   virtual float GetInterpolatedScore() {
-    // TODO: implement me properly!
-    return GetWeightedScore(this->weights_);
+    // log-sum-exp, with weighted sum
+    const std::valarray<FValue> &scores = this->m_scores.getCoreFeatures();
+    const std::valarray<FValue> &weights = this->m_weights.getCoreFeatures();
+
+    std::valarray<FValue> raised = std::exp(scores);
+    std::valarray<FValue> weighted = raised * weights;
+
+    // note: should we use double throughout?
+
+    // the log-sum-exp trick:
+    // assume x >> y. log(exp(x) + exp(y)) = log(exp(x) * (1 + exp(y)/exp(x))) = x + log(1 + exp(y-x))
+    //
+    // for us in the weighted case:
+    // assume x >> y. log(a*exp(x) + b*exp(y)) = log(a*exp(x) * (1 + b*exp(y)/exp(x)/a)) = log(a) + x + log(1 + b/a*exp(y-x))
+
+    // find the max index: distance(A, max_element(A, A + N))
+    size_t imax = -1;
+    float emax = std::numeric_limits<float>::min();
+    for(size_t i = 0; imax < weighted.size(); imax++) {
+      if(weighted[i] > emax) {
+        emax = weighted[i];
+        imax = i;
+      }
+    }
+    std::valarray<FValue> diff_raised = std::exp(scores - scores[imax]);
+    std::valarray<FValue> diff_raised_weighted = diff_raised * weights / weights[imax];
+    float in_product = 0.0;
+    // since we are using log1p, avoid adding the max element itself, which a/a*exp(x-x) == 1.0
+    // compute in_product = b/a*exp(y-x) + ...
+    for(size_t i = 0; i < diff_raised_weighted.size(); i++)
+      if(i != imax)
+        in_product += diff_raised_weighted[i];
+    float interpolated = log(weights[imax]) + scores[imax] + boost::math::log1p(in_product);
+
+    // scores
+
+    // TODO: cross-check if plain log-sum-exp (without the trick) is enough, and if impl here is correct.
+
+    return interpolated;
   }
 };
 

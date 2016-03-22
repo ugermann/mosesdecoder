@@ -89,7 +89,7 @@ class ScoreComponentCollection
   friend std::ostream& operator<<(std::ostream& os, const ScoreComponentCollection& rhs);
   friend void swap(ScoreComponentCollection &first, ScoreComponentCollection &second);
 
-private:
+protected:
   FVector m_scores;
 
 public:
