@@ -166,8 +166,8 @@ template <class Model> void LanguageModelKen<Model>::LoadModel(const std::string
   m_beginSentenceFactor = collection.AddFactor(BOS_);
 }
 
-template <class Model> LanguageModelKen<Model>::LanguageModelKen(const std::string &line, const std::string &file, FactorType factorType, bool lazy)
-  :LanguageModel(line)
+template <class Model> LanguageModelKen<Model>::LanguageModelKen(const std::string &line, const std::string &file, FactorType factorType, bool lazy, bool registerNow)
+  :LanguageModel(line, registerNow)
   ,m_factorType(factorType)
 {
   ReadParameters();
@@ -475,7 +475,7 @@ template class LanguageModelKen<lm::ngram::QuantTrieModel>;
 template class LanguageModelKen<lm::ngram::QuantArrayTrieModel>;
 
 
-LanguageModel *ConstructKenLM(const std::string &lineOrig)
+LanguageModel *ConstructKenLM(const std::string &lineOrig, bool registerNow)
 {
   FactorType factorType = 0;
   string filePath;
@@ -507,31 +507,31 @@ LanguageModel *ConstructKenLM(const std::string &lineOrig)
     }
   }
 
-  return ConstructKenLM(line.str(), filePath, factorType, lazy);
+  return ConstructKenLM(line.str(), filePath, factorType, lazy, registerNow);
 }
 
-LanguageModel *ConstructKenLM(const std::string &line, const std::string &file, FactorType factorType, bool lazy)
+LanguageModel *ConstructKenLM(const std::string &line, const std::string &file, FactorType factorType, bool lazy, bool registerNow)
 {
   lm::ngram::ModelType model_type;
   if (lm::ngram::RecognizeBinary(file.c_str(), model_type)) {
     switch(model_type) {
     case lm::ngram::PROBING:
-      return new LanguageModelKen<lm::ngram::ProbingModel>(line, file, factorType, lazy);
+      return new LanguageModelKen<lm::ngram::ProbingModel>(line, file, factorType, lazy, registerNow);
     case lm::ngram::REST_PROBING:
-      return new LanguageModelKen<lm::ngram::RestProbingModel>(line, file, factorType, lazy);
+      return new LanguageModelKen<lm::ngram::RestProbingModel>(line, file, factorType, lazy, registerNow);
     case lm::ngram::TRIE:
-      return new LanguageModelKen<lm::ngram::TrieModel>(line, file, factorType, lazy);
+      return new LanguageModelKen<lm::ngram::TrieModel>(line, file, factorType, lazy, registerNow);
     case lm::ngram::QUANT_TRIE:
-      return new LanguageModelKen<lm::ngram::QuantTrieModel>(line, file, factorType, lazy);
+      return new LanguageModelKen<lm::ngram::QuantTrieModel>(line, file, factorType, lazy, registerNow);
     case lm::ngram::ARRAY_TRIE:
-      return new LanguageModelKen<lm::ngram::ArrayTrieModel>(line, file, factorType, lazy);
+      return new LanguageModelKen<lm::ngram::ArrayTrieModel>(line, file, factorType, lazy, registerNow);
     case lm::ngram::QUANT_ARRAY_TRIE:
-      return new LanguageModelKen<lm::ngram::QuantArrayTrieModel>(line, file, factorType, lazy);
+      return new LanguageModelKen<lm::ngram::QuantArrayTrieModel>(line, file, factorType, lazy, registerNow);
     default:
       UTIL_THROW2("Unrecognized kenlm model type " << model_type);
     }
   } else {
-    return new LanguageModelKen<lm::ngram::ProbingModel>(line, file, factorType, lazy);
+    return new LanguageModelKen<lm::ngram::ProbingModel>(line, file, factorType, lazy, registerNow);
   }
 }
 

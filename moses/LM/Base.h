@@ -44,7 +44,7 @@ class Phrase;
 class LanguageModel : public StatefulFeatureFunction
 {
 protected:
-  LanguageModel(const std::string &line);
+  LanguageModel(const std::string &line, bool registerNow = true);
 
   bool m_enableOOVFeature;
 
