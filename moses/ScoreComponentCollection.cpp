@@ -55,7 +55,12 @@ size_t ScoreComponentCollection::s_denseVectorSize = 0;
 
 ScoreComponentCollection::
 ScoreComponentCollection()
-  : m_scores(s_denseVectorSize)
+  : m_scores(s_denseVectorSize), m_denseVectorSize(s_denseVectorSize)
+{}
+
+ScoreComponentCollection::
+ScoreComponentCollection(size_t denseVectorSize)
+    : m_scores(denseVectorSize), m_denseVectorSize(denseVectorSize)
 {}
 
 
@@ -76,7 +81,15 @@ float
 ScoreComponentCollection::
 GetWeightedScore() const
 {
+  UTIL_THROW_IF2(m_scores.coreSize() != StaticData::Instance().GetAllWeights().m_scores.coreSize(), m_scores.coreSize() << " != " << StaticData::Instance().GetAllWeights().m_scores.coreSize());
   return m_scores.inner_product(StaticData::Instance().GetAllWeights().m_scores);
+}
+
+float
+ScoreComponentCollection::
+GetWeightedScore(const ScoreComponentCollection& weights) const
+{
+  return m_scores.inner_product(weights.m_scores);
 }
 
 void ScoreComponentCollection::MultiplyEquals(float scalar)
@@ -257,6 +270,16 @@ Assign(const FeatureFunction* sp, const std::vector<float>& scores)
   }
 }
 
+void
+ScoreComponentCollection::
+Assign(size_t index, const std::vector<float>& scores)
+{
+  assert(index + scores.size() <= m_denseVectorSize);
+  for (size_t i = 0; i < scores.size(); ++i) {
+    m_scores[i + index] = scores[i];
+  }
+}
+
 
 void ScoreComponentCollection::InvertDenseFeatures(const FeatureFunction* sp)
 {
@@ -284,7 +307,7 @@ FVector
 ScoreComponentCollection::
 GetVectorForProducer(const FeatureFunction* sp) const
 {
-  FVector fv(s_denseVectorSize);
+  FVector fv(m_denseVectorSize);
   std::string prefix = sp->GetScoreProducerDescription() + FName::SEP;
   for(FVector::FNVmap::const_iterator i = m_scores.cbegin(); i != m_scores.cend(); i++) {
     std::stringstream name;
