@@ -12,6 +12,7 @@ namespace Moses
 {
 
 class ScoreComponentCollection;
+class Interpolator;
 
 /**
  * A wrapper class for several language models of any type. Enables various interpolation functions.
@@ -85,6 +86,9 @@ private:
 
   /** normalize the provided weights map to sum to alpha */
   void normalize_weights(std::map<std::string, float>& map, float alpha = 1.0);
+
+  /** This is thread-specific as it uses a weights_ reference. */
+  Interpolator* CreateInterpolator() const;
 };
 
 

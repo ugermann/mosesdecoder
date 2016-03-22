@@ -1,6 +1,7 @@
 
 #include "Multiplexer.h"
 
+#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <map>
 
@@ -16,6 +17,55 @@ using namespace std;
 
 namespace Moses
 {
+
+// note: we could templatize these, instead of the virtual call
+// or we could put the switch inside one of these...
+
+/**
+ * Wraps SCC to provide a virtual GetInterpolatedScore()
+ */
+class Interpolator : public ScoreComponentCollection {
+public:
+  Interpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
+      ScoreComponentCollection(denseVectorSize), weights_(weights)
+  {}
+
+  virtual float GetInterpolatedScore() = 0;
+
+protected:
+  const ScoreComponentCollection& weights_;
+};
+
+/**
+ * Log-linear interpolation (aka dot product of scores with weights).
+ */
+class LogLinearInterpolator : public Interpolator {
+public:
+  LogLinearInterpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
+      Interpolator(denseVectorSize, weights)
+  {}
+
+  virtual float GetInterpolatedScore() {
+    return GetWeightedScore(this->weights_);
+  }
+};
+
+/**
+ * Linear interpolation (aka log-sum-exp, with weighted sum).
+ */
+class LinearInterpolator : public Interpolator {
+public:
+  LinearInterpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
+      Interpolator(denseVectorSize, weights)
+  {}
+
+  virtual float GetInterpolatedScore() {
+    // TODO: implement me properly!
+    return GetWeightedScore(this->weights_);
+  }
+};
+
+
 
 /**
  * A container for all our sub-LM states.
@@ -208,6 +258,18 @@ void LanguageModelMultiplexer::SetParameter(const std::string& key, const std::s
   }
 }
 
+Interpolator* LanguageModelMultiplexer::CreateInterpolator() const
+{
+  const Weights& weights = *weights_.get(); // thread-specific weights
+
+  switch(function_) {
+    case INTERPOLATE_LINEAR:
+      return new LinearInterpolator(features_.size(), weights);
+    case INTERPOLATE_LOG_LINEAR:
+      return new LogLinearInterpolator(features_.size(), weights);
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////////////
 
 FFState* LanguageModelMultiplexer::EvaluateWhenApplied(
@@ -277,8 +339,8 @@ void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore,
 {
   Weights& weights = *weights_.get(); // thread-specific weights
 
-  ScoreComponentCollection fullScores(features_.size());
-  ScoreComponentCollection ngramScores(features_.size());
+  boost::scoped_ptr<Interpolator> fullScores(CreateInterpolator());
+  boost::scoped_ptr<Interpolator> ngramScores(CreateInterpolator());
 
   oovCount = phrase.GetSize();
 
@@ -286,14 +348,13 @@ void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore,
   size_t oovs;
   for(size_t i = 0; i < features_.size(); i++) {
     features_[i]->CalcScore(phrase, full, ngram, oovs);
-    fullScores.Assign(i, fullScore);
-    ngramScores.Assign(i, ngramScore);
+    fullScores->Assign(i, fullScore);
+    ngramScores->Assign(i, ngramScore);
     oovCount = std::min(oovs, oovCount);
   }
 
-  // TODO: currently log-linear
-  fullScore = fullScores.GetWeightedScore(weights);
-  ngramScore = ngramScores.GetWeightedScore(weights);
+  fullScore = fullScores->GetInterpolatedScore();
+  ngramScore = ngramScores->GetInterpolatedScore();
 }
 
 FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const
@@ -307,9 +368,10 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
     return ret;
   }
 
-  ScoreComponentCollection score(features_.size());
+  //ScoreComponentCollection score(features_.size()); // how slow is this to construct? We could cache it in thread_specific_ptr.
+  boost::scoped_ptr<Interpolator> score(CreateInterpolator());
   for(size_t i = 0; i < features_.size(); i++) {
-    ret->states[i] = features_[i]->EvaluateWhenApplied(hypo, in_state.states[i], &score);
+    ret->states[i] = features_[i]->EvaluateWhenApplied(hypo, in_state.states[i], score.get());
   }
 
   // TODO: currently log-linear
@@ -317,7 +379,7 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
 
   std::vector<float> scores;
   scores.resize(this->GetNumScoreComponents());
-  scores[0] = score.GetWeightedScore(weights);
+  scores[0] = score->GetInterpolatedScore();
   scores[1] = 0.0;
   if(OOVFeatureEnabled()) {
     UTIL_THROW2("OOV feature is not implemented yet");
