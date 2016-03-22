@@ -17,6 +17,7 @@ class FeatureFunction;
 class FeatureSetup {
 public:
   virtual void operator()(FeatureFunction *feature) = 0;
+  virtual bool RegisterNow() = 0;
 };
 
 class FeatureRegistry {
