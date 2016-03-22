@@ -175,31 +175,6 @@ LanguageModelMultiplexer::initialize_features()
   //NoCache();  // only in StaticData: only deals with PhraseTables. We only care about LMs here.
   //staticData.OverrideFeatures();  // I don't know the effect of overriding twice, but it probably re-processes ...
   // ... already changed features, so that is not a good idea. Who uses this anyway?
-
-  FVector fvec(20);
-  //fvec. // m_scores[index] += score;
-  fvec[17] += 1.0f;
-  XVERBOSE(0, "DEBUG FVector DAVID: " << fvec[17] << "\n");
-  fvec.clear();
-  XVERBOSE(0, "DEBUG FVector DAVID after clear: " << fvec[17] << "\n");
-  fvec[17] += 1.0f;
-  XVERBOSE(0, "DEBUG FVector DAVID after add more: " << fvec[17] << "\n");
-
-
-  std::vector<float> scores(2);
-  scores[0] = 1.0;
-  scores[1] = 0.0;
-  //scores[2] = 0.0;
-
-  ScoreComponentCollection scc;
-  scc.PlusEquals(this, scores);
-  XVERBOSE(0, "DEBUG SCC DAVID: " << scc.GetScoresVector()[this->GetIndex() + 0] << "\n");
-  scc.ZeroAll();
-  XVERBOSE(0, "DEBUG SCC DAVID after ZeroAll: " << scc.GetScoresVector()[this->GetIndex() + 0] << "\n");
-  scc.PlusEquals(this, scores);
-  XVERBOSE(0, "DEBUG SCC DAVID after add more: " << scc.GetScoresVector()[this->GetIndex() + 0] << "\n");
-
-  //exit(1);
 }
 
 void LanguageModelMultiplexer::Load(AllOptions::ptr const &opts) {
