@@ -36,7 +36,7 @@ PhraseDictionaryDynamicCacheBased *PhraseDictionaryDynamicCacheBased::s_instance
 
 //! contructor
 PhraseDictionaryDynamicCacheBased::PhraseDictionaryDynamicCacheBased(const std::string &line)
-  : PhraseDictionary(line, true)
+  : PhraseDictionary(line)
 {
   std::cerr << "Initializing PhraseDictionaryDynamicCacheBased feature..." << std::endl;
 

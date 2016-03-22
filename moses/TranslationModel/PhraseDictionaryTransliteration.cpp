@@ -12,7 +12,7 @@ using namespace std;
 namespace Moses
 {
 PhraseDictionaryTransliteration::PhraseDictionaryTransliteration(const std::string &line)
-  : PhraseDictionary(line, true)
+  : PhraseDictionary(line)
 {
   ReadParameters();
   UTIL_THROW_IF2(m_mosesDir.empty() ||

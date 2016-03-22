@@ -59,7 +59,7 @@ namespace Moses
 
   Mmsapt::
   Mmsapt(string const& line)
-    : PhraseDictionary(line, /* registerNow = */ true)
+    : PhraseDictionary(line)
     , btfix(new mmbitext)
     , m_bias_log(NULL)
     , m_bias_loglevel(0)

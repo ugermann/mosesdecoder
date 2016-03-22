@@ -41,7 +41,7 @@ class RuleTableTrie : public PhraseDictionary
 {
 public:
   RuleTableTrie(const std::string &line)
-    : PhraseDictionary(line, true) {
+    : PhraseDictionary(line) {
   }
 
   virtual ~RuleTableTrie();

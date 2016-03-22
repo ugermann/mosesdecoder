@@ -28,7 +28,7 @@ namespace Moses
 
 PhraseDictionaryTreeAdaptor::
 PhraseDictionaryTreeAdaptor(const std::string &line)
-  : PhraseDictionary(line, true)
+  : PhraseDictionary(line)
 {
   ReadParameters();
 }

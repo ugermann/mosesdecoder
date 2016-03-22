@@ -7,7 +7,7 @@ using namespace std;
 namespace Moses
 {
 PhraseDictionaryMemoryPerSentence::PhraseDictionaryMemoryPerSentence(const std::string &line)
-  : PhraseDictionary(line, true)
+  : PhraseDictionary(line)
 {
   ReadParameters();
 }
