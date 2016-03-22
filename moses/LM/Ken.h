@@ -38,10 +38,10 @@ namespace Moses
 //class LanguageModel;
 class FFState;
 
-LanguageModel *ConstructKenLM(const std::string &line, bool registerNow = true);
+LanguageModel *ConstructKenLM(const std::string &line);
 
 //! This will also load. Returns a templated KenLM class
-LanguageModel *ConstructKenLM(const std::string &line, const std::string &file, FactorType factorType, bool lazy, bool registerNow = true);
+LanguageModel *ConstructKenLM(const std::string &line, const std::string &file, FactorType factorType, bool lazy);
 
 /*
  * An implementation of single factor LM using Kenneth's code.
@@ -49,7 +49,7 @@ LanguageModel *ConstructKenLM(const std::string &line, const std::string &file, 
 template <class Model> class LanguageModelKen : public LanguageModel
 {
 public:
-  LanguageModelKen(const std::string &line, const std::string &file, FactorType factorType, bool lazy, bool registerNow = true);
+  LanguageModelKen(const std::string &line, const std::string &file, FactorType factorType, bool lazy);
 
   virtual const FFState *EmptyHypothesisState(const InputType &/*input*/) const;
 
