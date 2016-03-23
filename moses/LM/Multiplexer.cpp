@@ -390,8 +390,8 @@ void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore,
   size_t oovs;
   for(size_t i = 0; i < features_.size(); i++) {
     features_[i]->CalcScore(phrase, full, ngram, oovs);
-    fullScores->Assign(i, fullScore);
-    ngramScores->Assign(i, ngramScore);
+    fullScores->Assign(i, full);
+    ngramScores->Assign(i, ngram);
     oovCount = std::min(oovs, oovCount);
   }
 
