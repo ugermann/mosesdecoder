@@ -72,6 +72,7 @@ protected:
 
   Function function_;  ///< combination function to be performed on the LMs
   std::string background_lm_;  ///< feature name of background LM
+  float alpha_; ///< adaptive fraction. (1-alpha) * P_background + alpha * P_adaptive, see InitializeForInput()
 
   boost::thread_specific_ptr<Weights> weights_; ///< feature weights, specified dynamically for each sentence
   std::vector<LanguageModel *> features_; ///< list of sub-LM FeatureFunctions

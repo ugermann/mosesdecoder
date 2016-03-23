@@ -148,17 +148,7 @@ void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
   // hack: add one weight, which we always output as 0 to moses, but ask for the value and use it ourselves.
   const StaticData& staticData = StaticData::Instance();
 
-  float alpha = staticData.GetAllWeights().getCoreFeatures()[this->GetIndex() + 1]; // get feature[1] weight
-  //float alpha = staticData.GetAllWeights().GetVectorForProducer(this)[1]; // get feature[1] weight
-
-  XVERBOSE(2, "MUXLM: alpha = " << alpha << "\n");
-  UTIL_THROW_IF2(alpha < 0.0, "MUXLM: alpha weight must be from range [0, 1)");
-  UTIL_THROW_IF2(alpha > 1.0f, "MUXLM: alpha weight must be from range [0, 1)");
-  // (1-alpha) * P_background + alpha * P_adaptive
-  // NOTE: MERT is not ideal to tune this weight, since it is linear, which breaks assumptions of log-linear lines in MERT.
-  //
-  // NOTE: AFAIK, MERT will NOT change this weight at all, since we produce a constant 0 score in the feature[1] slot.
-  // -> tune this by hand. (have fun!)
+  // (1-alpha) * P_background + alpha * P_adaptive -- see docstring for this->alpha_
 
   // obtain domain weights
   std::map<std::string, float> weight_map;
@@ -173,11 +163,11 @@ void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
       weight_map[(*it)->GetScoreProducerDescription()] = 1.0;
     XVERBOSE(1, "MUXLM: no context weights, uniform weight fallback.\n");
   }
-  normalize_weights(weight_map, alpha); // normalize sum to alpha
+  normalize_weights(weight_map, alpha_); // normalize sum to alpha_
 
   // first feature is background LM
-  XVERBOSE(2, "MUXLM: weight_background = " << (1.0f - alpha) << "\n");
-  new_weights.push_back(1.0f - alpha);
+  XVERBOSE(2, "MUXLM: weight_background = " << (1.0f - alpha_) << "\n");
+  new_weights.push_back(1.0f - alpha_);
   // next features are adaptive LMs
   for(size_t i = 0; i < adaptive_.size(); i++) {
     XVERBOSE(2, "MUXLM: weight[" << adaptive_[i]->GetScoreProducerDescription() << "] = " << weight_map[adaptive_[i]->GetScoreProducerDescription()] << "\n");
@@ -255,11 +245,8 @@ private:
  *     call passed on to Load() of sub-LMs, which actually load up model files from disk
  */
 LanguageModelMultiplexer::LanguageModelMultiplexer(const std::string &line, bool registerNow)
-  : LanguageModelSingleFactor(line), background_(NULL)
+  : LanguageModelSingleFactor(line), function_(INTERPOLATE_LINEAR), alpha_(0.5), background_(NULL)
 {
-  // we add another feature: feature[1] is producing constant 0, we only use its tuning weight.
-  this->m_numScoreComponents = this->m_numTuneableComponents = m_enableOOVFeature ? 3 : 2;
-
   ReadParameters();
   initialize_features(); // loads this->features_
 
@@ -347,15 +334,16 @@ void LanguageModelMultiplexer::Load(AllOptions::ptr const &opts) {
     features_[i]->SetIndex(i);
     features_[i]->Load(opts);
   }
+
+  // check some bounds for alpha
+  XVERBOSE(2, "MUXLM: alpha = " << alpha_ << "\n");
+  UTIL_THROW_IF2(alpha_ < 0.0, "MUXLM: alpha weight must be from range [0, 1)");
+  UTIL_THROW_IF2(alpha_ > 1.0f, "MUXLM: alpha weight must be from range [0, 1)");
 }
 
 void LanguageModelMultiplexer::SetParameter(const std::string& key, const std::string& value)
 {
-  if(key == "oov-feature") {
-    m_enableOOVFeature = Scan<bool>(value);
-    // we add another feature: feature[1] is producing constant 0, we only use its tuning weight.
-    this->m_numScoreComponents = this->m_numTuneableComponents = m_enableOOVFeature ? 3 : 2;
-  } else if (key == "function") {
+  if (key == "function") {
     std::string function = Scan<std::string>(value);
     if(function == "interpolate-log-linear") {
       function_ = INTERPOLATE_LOG_LINEAR;
@@ -366,6 +354,8 @@ void LanguageModelMultiplexer::SetParameter(const std::string& key, const std::s
     } else {
       UTIL_THROW2("ERROR: invalid function name for MUXLM: '" << function << "'");
     }
+  } else if (key == "alpha") {
+    alpha_ = Scan<float>(value);
   } else if (key == "background-lm") {
     background_lm_ = Scan<std::string>(value);
   } else {
@@ -433,14 +423,8 @@ EvaluateInIsolation(Phrase const& source, TargetPhrase const& targetPhrase,
   if (m_enableOOVFeature) {
     UTIL_THROW2("MUXLM: OOVFeature is not implemented yet");
   } else {
-    vector<float> scores(2), estimateScores(2);
-    scores[0] = nGramScore;
-    scores[1] = 0;
-    scoreBreakdown.Assign(this, scores);
-
-    estimateScores[0] = estimateScore;
-    estimateScores[1] = 0;
-    estimatedScores.Assign(this, estimateScores);
+    scoreBreakdown.Assign(this, nGramScore);
+    estimatedScores.Assign(this, estimateScore);
 
     VERBOSE(2,"CalcScore of targetPhrase:|" << targetPhrase << "|: ngr=" << nGramScore << " est=" << estimateScore << std::endl);
   }
@@ -485,15 +469,10 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
     ret->states[i] = features_[i]->EvaluateWhenApplied(hypo, in_state.states[i], score.get());
   }
 
-  std::vector<float> scores;
-  scores.resize(this->GetNumScoreComponents());
-  scores[0] = score->GetInterpolatedScore();
-  scores[1] = 0.0; // our feature[1] always provides 0 score, it's just there so we have an alpha weight
   if(OOVFeatureEnabled()) {
     UTIL_THROW2("OOV feature is not implemented yet");
-    scores[2] = 0;
   }
-  out->PlusEquals(this, scores);
+  out->PlusEquals(this, score->GetInterpolatedScore());
 
   //XVERBOSE(2, "MUXLM total score[" << this->GetIndex() << "] = " << out->GetScoresVector()[this->GetIndex() + 0] << "\n");
 
