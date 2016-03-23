@@ -11,6 +11,7 @@
 #include <boost/math/special_functions/log1p.hpp>
 
 #include "moses/StaticData.h"
+#include "moses/Parameter.h"
 #include "moses/FactorCollection.h"
 #include "moses/FF/Factory.h"
 #include "moses/FF/FFState.h"
@@ -305,7 +306,12 @@ LanguageModelMultiplexer::initialize_features()
    */
   UTIL_THROW_IF2(m_description != "muxlm", "MUXLM must have name=muxlm, and only one of this feature is allowed.");
 
-  const PARAM_VEC* params = staticData.GetParameter().GetParam(m_description); // get moses.ini section [<name>]
+  // note: ideally, we should be able to parse an INI file without checking for moses parameters... herp derp duh.
+  Moses::Parameter config;
+  bool success = config.LoadParam(this->m_filePath);
+  UTIL_THROW_IF2(!success, "MUXLM failed to load path=" << this->m_filePath);
+
+  const PARAM_VEC* params = config.GetParam(m_description); // get moses.ini section [<name>]
   for (size_t i = 0; params && i < params->size(); ++i) {
     const string &line = Trim(params->at(i));
     VERBOSE(1,"line=" << line << endl);
