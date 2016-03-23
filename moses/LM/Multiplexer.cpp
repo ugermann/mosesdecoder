@@ -83,7 +83,7 @@ public:
     // find the max index: distance(A, max_element(A, A + N))
     size_t imax = -1;
     float emax = std::numeric_limits<float>::min();
-    for(size_t i = 0; imax < weighted.size(); imax++) {
+    for(size_t i = 0; i < weighted.size(); i++) {
       if(weighted[i] > emax) {
         emax = weighted[i];
         imax = i;
