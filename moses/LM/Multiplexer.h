@@ -66,7 +66,8 @@ protected:
   /** Combination function to be performed on the LMs. */
   enum Function {
     INTERPOLATE_LOG_LINEAR,
-    INTERPOLATE_LINEAR
+    INTERPOLATE_LINEAR,
+    INTERPOLATE_PLAIN_LINEAR
   };
 
   Function function_;  ///< combination function to be performed on the LMs

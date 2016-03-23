@@ -51,16 +51,29 @@ public:
   {}
 
   virtual float GetInterpolatedScore() {
+    XVERBOSE(2, "MUXLM: LogLinInterp\n");
     return GetWeightedScore(this->m_weights);
   }
 };
 
+std::ostream& operator<<(std::ostream& os, const std::valarray<FValue>& valarr)
+{
+  os << "[";
+  for(size_t i = 0; i < valarr.size(); i++) {
+    if(i > 0)
+      os << ", ";
+    os << valarr[i];
+  }
+  os << "]";
+  return os;
+}
+
 /**
  * Linear interpolation (aka log-sum-exp, with weighted sum).
  */
-class LinearInterpolator : public Interpolator {
+class LinearLSEInterpolator : public Interpolator {
 public:
-  LinearInterpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
+  LinearLSEInterpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
       Interpolator(denseVectorSize, weights)
   {}
 
@@ -104,6 +117,27 @@ public:
     // TODO: cross-check if plain log-sum-exp (without the trick) is enough, and if impl here is correct.
 
     return interpolated;
+  }
+};
+
+class LinearPlainInterpolator : public Interpolator {
+public:
+  LinearPlainInterpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
+      Interpolator(denseVectorSize, weights)
+  {}
+
+  virtual float GetInterpolatedScore() {
+    const std::valarray<FValue> &scores = this->m_scores.getCoreFeatures();
+    const std::valarray<FValue> &weights = this->m_weights.getCoreFeatures();
+
+    std::valarray<FValue> raised = std::exp(scores);
+    std::valarray<FValue> weighted = raised * weights;
+
+    float s = weighted.sum();
+
+    // TODO: throw if s == 0.0, that should not happen?!
+
+    return s == 0.0 ? 0.0 : log(s);
   }
 };
 
@@ -290,6 +324,8 @@ void LanguageModelMultiplexer::SetParameter(const std::string& key, const std::s
       function_ = INTERPOLATE_LOG_LINEAR;
     } else if(function == "interpolate-linear") {
       function_ = INTERPOLATE_LINEAR;
+    } else if(function == "interpolate-plain-linear") {
+      function_ = INTERPOLATE_PLAIN_LINEAR;
     } else {
       UTIL_THROW2("ERROR: invalid function name for MUXLM: '" << function << "'");
     }
@@ -304,11 +340,17 @@ Interpolator* LanguageModelMultiplexer::CreateInterpolator() const
 {
   const Weights& weights = *weights_.get(); // thread-specific weights
 
+  // TODO: one arg can be removed, weights.size() holds the other one.
+
   switch(function_) {
     case INTERPOLATE_LINEAR:
-      return new LinearInterpolator(features_.size(), weights);
+      return new LinearLSEInterpolator(features_.size(), weights);
     case INTERPOLATE_LOG_LINEAR:
       return new LogLinearInterpolator(features_.size(), weights);
+    case INTERPOLATE_PLAIN_LINEAR:
+      return new LinearPlainInterpolator(features_.size(), weights);
+    default:
+      UTIL_THROW2("MUXLM: invalid function_ value.");
   }
 }
 
@@ -354,6 +396,8 @@ EvaluateInIsolation(Phrase const& source, TargetPhrase const& targetPhrase,
   float estimateScore = fullScore - nGramScore;
 
   if (m_enableOOVFeature) {
+    UTIL_THROW2("MUXLM: OOVFeature is not implemented yet");
+
     vector<float> scores(3), estimateScores(3);
     scores[0] = nGramScore;
     scores[1] = 0;
@@ -373,6 +417,8 @@ EvaluateInIsolation(Phrase const& source, TargetPhrase const& targetPhrase,
     estimateScores[0] = estimateScore;
     estimateScores[1] = 0;
     estimatedScores.Assign(this, estimateScores);
+
+    VERBOSE(2,"CalcScore of targetPhrase:|" << targetPhrase << "|: ngr=" << nGramScore << " est=" << estimateScore << std::endl);
   }
 }
 
@@ -429,7 +475,15 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
   }
   out->PlusEquals(this, scores);
 
-  XVERBOSE(3, "MUXLM total score[" << this->GetIndex() << "] = " << out->GetScoresVector()[this->GetIndex() + 0] << "\n");
+  // DEBUG
+  static boost::thread_specific_ptr<size_t> ctr;
+  if(ctr.get() == NULL) {
+    ctr.reset(new size_t);
+    *ctr = 0;
+  }
+  if((*ctr)++ < 1000)
+    XVERBOSE(2, "MUXLM total score[" << this->GetIndex() << "] = " << out->GetScoresVector()[this->GetIndex() + 0] << "\n");
+  // END DEBUG
 
   return ret;
 }
