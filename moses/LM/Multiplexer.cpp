@@ -43,8 +43,8 @@ std::ostream& operator<<(std::ostream& os, const std::valarray<FValue>& valarr)
  */
 class Interpolator : public ScoreComponentCollection {
 public:
-  Interpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
-      ScoreComponentCollection(denseVectorSize), m_weights(weights)
+  Interpolator(const ScoreComponentCollection& weights):
+      ScoreComponentCollection(weights.getCoreFeatures().size()), m_weights(weights)
   {}
 
   virtual float GetInterpolatedScore() = 0;
@@ -58,12 +58,11 @@ protected:
  */
 class LogLinearInterpolator : public Interpolator {
 public:
-  LogLinearInterpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
-      Interpolator(denseVectorSize, weights)
+  LogLinearInterpolator(const ScoreComponentCollection& weights):
+      Interpolator(weights)
   {}
 
   virtual float GetInterpolatedScore() {
-    XVERBOSE(2, "MUXLM: LogLinInterp\n");
     return GetWeightedScore(this->m_weights);
   }
 };
@@ -73,8 +72,8 @@ public:
  */
 class LinearLSEInterpolator : public Interpolator {
 public:
-  LinearLSEInterpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
-      Interpolator(denseVectorSize, weights)
+  LinearLSEInterpolator(const ScoreComponentCollection& weights):
+      Interpolator(weights)
   {}
 
   virtual float GetInterpolatedScore() {
@@ -118,8 +117,8 @@ public:
 
 class LinearPlainInterpolator : public Interpolator {
 public:
-  LinearPlainInterpolator(size_t denseVectorSize, const ScoreComponentCollection& weights):
-      Interpolator(denseVectorSize, weights)
+  LinearPlainInterpolator(const ScoreComponentCollection& weights):
+      Interpolator(weights)
   {}
 
   virtual float GetInterpolatedScore() {
@@ -234,7 +233,7 @@ public:
   MuxFeatureSetup(std::vector<LanguageModel *>& features): features_(features) {}
 
   virtual void operator()(FeatureFunction *feature) {
-    // note: I have no understanding of FeatureFunction cleanup logic in moses. There probably is none.
+    // TODO: I have no understanding of FeatureFunction cleanup logic in moses.
     // If you do, please add appropriate cleanup logic in this class.
     // I believe that the FeatureSetup should take ownership of the FF pointer passed in.
     features_.push_back(static_cast<LanguageModel *>(feature));
@@ -275,18 +274,6 @@ LanguageModelMultiplexer::LanguageModelMultiplexer(const std::string &line, bool
   features_.clear();
   features_.push_back(background_);
   features_.insert(features_.end(), adaptive_.begin(), adaptive_.end());
-
-  // Skeleton LM stuff below
-/*
-  FactorCollection &factorCollection = FactorCollection::Instance();
-
-  // needed by parent language model classes. Why didn't they set these themselves?
-  m_sentenceStart = factorCollection.AddFactor(Output, m_factorType, BOS_);
-  m_sentenceStartWord[m_factorType] = m_sentenceStart;
-
-  m_sentenceEnd		= factorCollection.AddFactor(Output, m_factorType, EOS_);
-  m_sentenceEndWord[m_factorType] = m_sentenceEnd;
-*/
 }
 
 LanguageModelMultiplexer::~LanguageModelMultiplexer()
@@ -384,15 +371,13 @@ Interpolator* LanguageModelMultiplexer::CreateInterpolator() const
 {
   const Weights& weights = *weights_.get(); // thread-specific weights
 
-  // TODO: one arg can be removed, weights.size() holds the other one.
-
   switch(function_) {
     case INTERPOLATE_LINEAR:
-      return new LinearLSEInterpolator(features_.size(), weights);
+      return new LinearLSEInterpolator(weights);
     case INTERPOLATE_LOG_LINEAR:
-      return new LogLinearInterpolator(features_.size(), weights);
+      return new LogLinearInterpolator(weights);
     case INTERPOLATE_PLAIN_LINEAR:
-      return new LinearPlainInterpolator(features_.size(), weights);
+      return new LinearPlainInterpolator(weights);
     default:
       UTIL_THROW2("MUXLM: invalid function_ value.");
   }
@@ -441,17 +426,6 @@ EvaluateInIsolation(Phrase const& source, TargetPhrase const& targetPhrase,
 
   if (m_enableOOVFeature) {
     UTIL_THROW2("MUXLM: OOVFeature is not implemented yet");
-
-    vector<float> scores(3), estimateScores(3);
-    scores[0] = nGramScore;
-    scores[1] = 0;
-    scores[2] = oovCount;
-    scoreBreakdown.Assign(this, scores);
-
-    estimateScores[0] = estimateScore;
-    estimateScores[1] = 0;
-    estimateScores[2] = 0;
-    estimatedScores.Assign(this, estimateScores);
   } else {
     vector<float> scores(2), estimateScores(2);
     scores[0] = nGramScore;
@@ -500,34 +474,22 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
     return ret;
   }
 
-  //ScoreComponentCollection score(features_.size()); // how slow is this to construct? We could cache it in thread_specific_ptr.
   boost::scoped_ptr<Interpolator> score(CreateInterpolator());
   for(size_t i = 0; i < features_.size(); i++) {
     ret->states[i] = features_[i]->EvaluateWhenApplied(hypo, in_state.states[i], score.get());
   }
 
-  // TODO: currently log-linear
-  //out->Assign(this, score.GetWeightedScore(weighting));
-
   std::vector<float> scores;
   scores.resize(this->GetNumScoreComponents());
   scores[0] = score->GetInterpolatedScore();
-  scores[1] = 0.0;
+  scores[1] = 0.0; // our feature[1] always provides 0 score, it's just there so we have an alpha weight
   if(OOVFeatureEnabled()) {
     UTIL_THROW2("OOV feature is not implemented yet");
     scores[2] = 0;
   }
   out->PlusEquals(this, scores);
 
-  // DEBUG
-  static boost::thread_specific_ptr<size_t> ctr;
-  if(ctr.get() == NULL) {
-    ctr.reset(new size_t);
-    *ctr = 0;
-  }
-  if((*ctr)++ < 1000)
-    XVERBOSE(2, "MUXLM total score[" << this->GetIndex() << "] = " << out->GetScoresVector()[this->GetIndex() + 0] << "\n");
-  // END DEBUG
+  //XVERBOSE(2, "MUXLM total score[" << this->GetIndex() << "] = " << out->GetScoresVector()[this->GetIndex() + 0] << "\n");
 
   return ret;
 }
