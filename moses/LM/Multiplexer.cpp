@@ -23,8 +23,20 @@ using namespace std;
 namespace Moses
 {
 
-// note: we could templatize these, instead of the virtual call
-// or we could put the switch inside one of these...
+
+// useful for debugging
+std::ostream& operator<<(std::ostream& os, const std::valarray<FValue>& valarr)
+{
+  os << "[";
+  for(size_t i = 0; i < valarr.size(); i++) {
+    if(i > 0)
+      os << ", ";
+    os << valarr[i];
+  }
+  os << "]";
+  return os;
+}
+
 
 /**
  * Wraps SCC to provide a virtual GetInterpolatedScore()
@@ -55,18 +67,6 @@ public:
     return GetWeightedScore(this->m_weights);
   }
 };
-
-std::ostream& operator<<(std::ostream& os, const std::valarray<FValue>& valarr)
-{
-  os << "[";
-  for(size_t i = 0; i < valarr.size(); i++) {
-    if(i > 0)
-      os << ", ";
-    os << valarr[i];
-  }
-  os << "]";
-  return os;
-}
 
 /**
  * Linear interpolation (aka log-sum-exp, with weighted sum).
@@ -112,10 +112,6 @@ public:
         in_product += diff_raised_weighted[i];
     float interpolated = log(weights[imax]) + scores[imax] + boost::math::log1p(in_product);
 
-    // scores
-
-    // TODO: cross-check if plain log-sum-exp (without the trick) is enough, and if impl here is correct.
-
     return interpolated;
   }
 };
@@ -135,12 +131,60 @@ public:
 
     float s = weighted.sum();
 
-    // TODO: throw if s == 0.0, that should not happen?!
-
-    return s == 0.0 ? 0.0 : log(s);
+    UTIL_THROW_IF2(s == 0.0, "MUXLM: weighted.sum() must not be 0");
+    return log(s);
   }
 };
 
+
+void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
+{
+  // this is called from several different threads and hence it must be thread-safe.
+  weights_.reset(new Weights(features_.size()));
+  std::vector<float> new_weights;
+  Weights& weights = *weights_.get();
+
+  // also, I would like two weights to be tuned.
+  // hack: add one weight, which we always output as 0 to moses, but ask for the value and use it ourselves.
+  const StaticData& staticData = StaticData::Instance();
+
+  float alpha = staticData.GetAllWeights().getCoreFeatures()[this->GetIndex() + 1]; // get feature[1] weight
+  //float alpha = staticData.GetAllWeights().GetVectorForProducer(this)[1]; // get feature[1] weight
+
+  XVERBOSE(2, "MUXLM: alpha = " << alpha << "\n");
+  UTIL_THROW_IF2(alpha < 0.0, "MUXLM: alpha weight must be from range [0, 1)");
+  UTIL_THROW_IF2(alpha > 1.0f, "MUXLM: alpha weight must be from range [0, 1)");
+  // (1-alpha) * P_background + alpha * P_adaptive
+  // NOTE: MERT is not ideal to tune this weight, since it is linear, which breaks assumptions of log-linear lines in MERT.
+  //
+  // NOTE: AFAIK, MERT will NOT change this weight at all, since we produce a constant 0 score in the feature[1] slot.
+  // -> tune this by hand. (have fun!)
+
+  // obtain domain weights
+  std::map<std::string, float> weight_map;
+  SPTR<std::map<std::string, float> const> w = ttask->GetScope()->GetContextWeights();
+  if(w && !w->empty()) {
+    // bias weights specified with the session
+    for(std::map<std::string, float>::const_iterator it = w->begin(); it != w->end(); ++it)
+      weight_map.insert(*it);
+  } else {
+    // fall back to uniform weights
+    for(std::vector<LanguageModel *>::iterator it = adaptive_.begin(); it != adaptive_.end(); ++it)
+      weight_map[(*it)->GetScoreProducerDescription()] = 1.0;
+    XVERBOSE(1, "MUXLM: no context weights, uniform weight fallback.\n");
+  }
+  normalize_weights(weight_map, alpha); // normalize sum to alpha
+
+  // first feature is background LM
+  XVERBOSE(2, "MUXLM: weight_background = " << (1.0f - alpha) << "\n");
+  new_weights.push_back(1.0f - alpha);
+  // next features are adaptive LMs
+  for(size_t i = 0; i < adaptive_.size(); i++) {
+    XVERBOSE(2, "MUXLM: weight[" << adaptive_[i]->GetScoreProducerDescription() << "] = " << weight_map[adaptive_[i]->GetScoreProducerDescription()] << "\n");
+    new_weights.push_back(weight_map[adaptive_[i]->GetScoreProducerDescription()]);
+  }
+  weights.Assign((size_t) 0, new_weights);
+}
 
 
 /**
@@ -486,56 +530,6 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
   // END DEBUG
 
   return ret;
-}
-
-
-void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
-{
-  // this is called from several different threads and hence it must be thread-safe.
-  weights_.reset(new Weights(features_.size()));
-  std::vector<float> new_weights;
-  Weights& weights = *weights_.get();
-
-  // also, I would like two weights to be tuned.
-  // hack: add one weight, which we always output as 0 to moses, but ask for the value and use it ourselves.
-  const StaticData& staticData = StaticData::Instance();
-
-  float alpha = staticData.GetAllWeights().getCoreFeatures()[this->GetIndex() + 1]; // get feature[1] weight
-  //float alpha = staticData.GetAllWeights().GetVectorForProducer(this)[1]; // get feature[1] weight
-
-  XVERBOSE(2, "MUXLM: alpha = " << alpha << "\n");
-  UTIL_THROW_IF2(alpha < 0.0, "MUXLM: alpha weight must be from range [0, 1)");
-  UTIL_THROW_IF2(alpha > 1.0f, "MUXLM: alpha weight must be from range [0, 1)");
-  // (1-alpha) * P_background + alpha * P_adaptive
-  // NOTE: MERT is not ideal to tune this weight, since it is linear, which breaks assumptions of log-linear lines in MERT.
-  //
-  // NOTE: AFAIK, MERT will NOT change this weight at all, since we produce a constant 0 score in the feature[1] slot.
-  // -> tune this by hand. (have fun!)
-
-  // obtain domain weights
-  std::map<std::string, float> weight_map;
-  SPTR<std::map<std::string, float> const> w = ttask->GetScope()->GetContextWeights();
-  if(w && !w->empty()) {
-    // bias weights specified with the session
-    for(std::map<std::string, float>::const_iterator it = w->begin(); it != w->end(); ++it)
-      weight_map.insert(*it);
-  } else {
-    // fall back to uniform weights
-    for(std::vector<LanguageModel *>::iterator it = adaptive_.begin(); it != adaptive_.end(); ++it)
-      weight_map[(*it)->GetScoreProducerDescription()] = 1.0;
-    XVERBOSE(1, "MUXLM: no context weights, uniform weight fallback.\n");
-  }
-  normalize_weights(weight_map, alpha); // normalize sum to alpha
-
-  // first feature is background LM
-  XVERBOSE(2, "MUXLM: weight_background = " << (1.0f - alpha) << "\n");
-  new_weights.push_back(1.0f - alpha);
-  // next features are adaptive LMs
-  for(size_t i = 0; i < adaptive_.size(); i++) {
-    XVERBOSE(2, "MUXLM: weight[" << adaptive_[i]->GetScoreProducerDescription() << "] = " << weight_map[adaptive_[i]->GetScoreProducerDescription()] << "\n");
-    new_weights.push_back(weight_map[adaptive_[i]->GetScoreProducerDescription()]);
-  }
-  weights.Assign((size_t) 0, new_weights);
 }
 
 void LanguageModelMultiplexer::normalize_weights(std::map<std::string, float>& map, float alpha)
