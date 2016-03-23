@@ -58,7 +58,7 @@ namespace sapt {
 
     size_t needSamples = m_samples; // remaining samples to be collected
 
-    XVERBOSE(2, "ranked3: sampling for '" << bitext.V1->toString(m_phrase) << "' len=" << m_phrase.size() << "\n");
+    XVERBOSE(3, "ranked3: sampling for '" << bitext.V1->toString(m_phrase) << "' len=" << m_phrase.size() << "\n");
 
     // in descending order of score, collect samples from each mentioned domain
     std::vector<std::pair<float, id_type> >::iterator it;
@@ -72,11 +72,11 @@ namespace sapt {
 
       //size_t collected = ranked3_collect(needSamples, bitext.domainI1[idom], bitext.domainI2[idom]);
       size_t collected = uniform_collect(needSamples, domains);
-      XVERBOSE(2, "  ranked3: domain " << idom << " collected " << collected << " samples\n");
+      XVERBOSE(3, "  ranked3: domain " << idom << " collected " << collected << " samples\n");
       needSamples -= collected;
     }
 
-    XVERBOSE(2, "  ranked3: individual_collect took " << format_time(current_time()-begin) << " s\n");
+    XVERBOSE(3, "  ranked3: individual_collect took " << format_time(current_time()-begin) << " s\n");
 
     // for any remaining samples needed, sample uniformly from the remaining, unmentioned domains
     std::vector<id_type> remainingDomains;
@@ -89,14 +89,14 @@ namespace sapt {
 
     double before_remaining_collect = current_time();
     size_t collected = uniform_collect(needSamples, remainingDomains);
-    XVERBOSE(2, "  ranked3: remaining_collect took " << format_time(current_time()-before_remaining_collect) << " s\n");
-    XVERBOSE(2, "  ranked3: remaining domains collected " << collected << " samples\n");
+    XVERBOSE(3, "  ranked3: remaining_collect took " << format_time(current_time()-before_remaining_collect) << " s\n");
+    XVERBOSE(3, "  ranked3: remaining domains collected " << collected << " samples\n");
     needSamples -= collected;
 
     if(needSamples == m_samples) {
       // we should only have been called for existing number of samples.
       // but checking raw1 is better for that, since for low counts, we may end up with all bad samples, and this triggers often.
-      XVERBOSE(2, std::cerr << "  ranked3: '" << bitext.V1->toString(m_phrase) << "' looked up, but no samples found.\n");
+      XVERBOSE(3, std::cerr << "  ranked3: '" << bitext.V1->toString(m_phrase) << "' looked up, but no samples found.\n");
     }
 
     double before_fixup_raw2 = current_time();
@@ -112,13 +112,13 @@ namespace sapt {
     }
 
     double end = current_time();
-    XVERBOSE(2, "  ranked3: fixup_raw2 took " << format_time(end-before_fixup_raw2) << " s\n");
+    XVERBOSE(3, "  ranked3: fixup_raw2 took " << format_time(end-before_fixup_raw2) << " s\n");
     //XVERBOSE(1, "  ranked3: perform_ranked_sampling3() '" << bitext.V1->toString(m_phrase) << "' took " << format_time(end-begin) << " s total\n");
     IFVERBOSE(2) {
       std::stringstream ss;
       ss << "  ranked3: perform_ranked_sampling3() '" << bitext.V1->toString(m_phrase) << "' took " << format_time(end-begin) << " s total\n";
       // makes sure we get the entire line logged at once (<3 threading in moses)
-      XVERBOSE(2, ss.str());
+      XVERBOSE(3, ss.str());
     }
 
     return 0; // nobody actually uses this.  AFAICT, this should be number of attempted samples.
@@ -156,10 +156,10 @@ namespace sapt {
       domainPhraseLocations.push_back(phraseLocations);
       domainBegin.push_back(totalOccurrences);
       totalOccurrences += phraseLocations.rawCnt();
-      XVERBOSE(2, "  ranked3 uniform_collect(): domain " << *it << " found " << phraseLocations.rawCnt() << " raw occurrences\n");
+      XVERBOSE(3, "  ranked3 uniform_collect(): domain " << *it << " found " << phraseLocations.rawCnt() << " raw occurrences\n");
     }
     domainBegin.push_back(totalOccurrences); // trailing sentinel
-    XVERBOSE(2, "  ranked3 uniform_collect(): found " << totalOccurrences << " raw occurrences in total\n");
+    XVERBOSE(3, "  ranked3 uniform_collect(): found " << totalOccurrences << " raw occurrences in total\n");
 
     // generate sample indices (among all domains)
     std::vector<size_t> sampleIndices;
@@ -184,7 +184,7 @@ namespace sapt {
         i2 = bitext.domainI2[domains[idomLocal]];
 
         size_t found = m_stats->good - good_before;
-        XVERBOSE(2, "  ranked3 uniform_collect(): domain " << domains[(idomLocal - 1)] << " found " << found << " samples\n");
+        XVERBOSE(3, "  ranked3 uniform_collect(): domain " << domains[(idomLocal - 1)] << " found " << found << " samples\n");
         good_before = m_stats->good;
       }
 
