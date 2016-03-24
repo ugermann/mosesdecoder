@@ -495,7 +495,7 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
   for(size_t i = 0; i < active_features.size(); i++) {
     scc.ZeroAll();
     ret->states[i] = features_[active_features[i]]->EvaluateWhenApplied(hypo, in_state.states[i], &scc);
-    score->Assign(active_features[i], scc.getCoreFeatures()[0]);
+    score->Assign(i, scc.getCoreFeatures()[0]);
   }
 
   if(OOVFeatureEnabled()) {
