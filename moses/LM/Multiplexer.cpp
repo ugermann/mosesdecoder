@@ -102,14 +102,19 @@ public:
         imax = i;
       }
     }
+    UTIL_THROW_IF2(weights[imax] == 0.0, "MUXLM: assert failed: weights[imax] != 0.0, or division by zero will occur");
     std::valarray<FValue> diff_raised = std::exp(scores - scores[imax]);
-    std::valarray<FValue> diff_raised_weighted = diff_raised * weights / weights[imax];
+    std::valarray<FValue> diff_raised_div = (weights / weights[imax]);
+    std::valarray<FValue> diff_raised_weighted = diff_raised * diff_raised_div;
+    // bracketing matters above: compute the weight first (which is division of a reasonably large number)
 
     // debug: sanity assertions
     for(size_t i = 0; i < weights.size(); i++)
       UTIL_THROW_IF2(weights[i] < 0.0, "MUXLM: assert failed: weights[" << i << "] >= 0.0");
     for(size_t i = 0; i < diff_raised.size(); i++)
       UTIL_THROW_IF2(diff_raised[i] < 0.0, "MUXLM: assert failed: diff_raised[" << i << "] >= 0.0");
+    for(size_t i = 0; i < diff_raised_div.size(); i++)
+      UTIL_THROW_IF2(diff_raised_div[i] < 0.0, "MUXLM: assert failed: diff_raised_div[" << i << "] >= 0.0");
     for(size_t i = 0; i < diff_raised_weighted.size(); i++)
       UTIL_THROW_IF2(diff_raised_weighted[i] < 0.0, "MUXLM: assert failed: diff_raised_weighted[" << i << "] >= 0.0");
     UTIL_THROW_IF2(weights.size() != diff_raised.size(), "MUXLM: assert failed: weights.size() == diff_raised.size()");
@@ -187,6 +192,8 @@ void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
     new_weights.push_back(weight_map[adaptive_[i]->GetScoreProducerDescription()]);
   }
   weights.Assign((size_t) 0, new_weights);
+
+  // TODO: instead of running all LMs, we should collect the LM index and only run non-zero LMs. Others are P = 1.0 (note: why? why not P_avg(word)? But that shouldn't matter since it's const - though maybe it changes the curve?)
 }
 
 
