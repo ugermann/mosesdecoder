@@ -155,6 +155,33 @@ public:
   }
 };
 
+class MaxInterpolator : public Interpolator {
+public:
+  MaxInterpolator(const ScoreComponentCollection& weights):
+      Interpolator(weights)
+  {}
+
+  virtual float GetInterpolatedScore() {
+    const std::valarray<FValue> &scores = this->m_scores.getCoreFeatures();
+    const std::valarray<FValue> &weights = this->m_weights.getCoreFeatures();
+
+    // for performance, this max() does not belong here, but should be cached. So what? Need to see if the general idea works.
+
+    // find the max weight index: distance(A, max_element(A, A + N))
+    // excluding the background LM
+    size_t imax = 1;
+    float emax = weights[imax];
+    for(size_t i = 1; i < weights.size(); i++) {
+      if(weights[i] > emax) {
+        emax = weights[i];
+        imax = i;
+      }
+    }
+
+    return std::max(scores[0], scores[imax]);
+  }
+};
+
 
 void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
 {
@@ -380,6 +407,8 @@ void LanguageModelMultiplexer::SetParameter(const std::string& key, const std::s
       function_ = INTERPOLATE_LINEAR;
     } else if(function == "interpolate-plain-linear") {
       function_ = INTERPOLATE_PLAIN_LINEAR;
+    } else if(function == "interpolate-max") {
+      function_ = INTERPOLATE_MAX;
     } else {
       UTIL_THROW2("ERROR: invalid function name for MUXLM: '" << function << "'");
     }
@@ -403,6 +432,8 @@ Interpolator* LanguageModelMultiplexer::CreateInterpolator() const
       return new LogLinearInterpolator(weights);
     case INTERPOLATE_PLAIN_LINEAR:
       return new LinearPlainInterpolator(weights);
+    case INTERPOLATE_MAX:
+      return new MaxInterpolator(weights);
     default:
       UTIL_THROW2("MUXLM: invalid function_ value.");
   }

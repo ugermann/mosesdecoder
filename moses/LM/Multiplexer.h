@@ -67,7 +67,8 @@ protected:
   enum Function {
     INTERPOLATE_LOG_LINEAR,
     INTERPOLATE_LINEAR,
-    INTERPOLATE_PLAIN_LINEAR
+    INTERPOLATE_PLAIN_LINEAR,
+    INTERPOLATE_MAX // the maximum of (background score, best domain score)
   };
 
   Function function_;  ///< combination function to be performed on the LMs
