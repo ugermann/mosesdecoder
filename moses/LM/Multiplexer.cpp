@@ -491,8 +491,11 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
   MuxLMState *ret = new MuxLMState(active_features.size());
 
   boost::scoped_ptr<Interpolator> score(CreateInterpolator());
+  ScoreComponentCollection scc(this->m_numScoreComponents);
   for(size_t i = 0; i < active_features.size(); i++) {
-    ret->states[i] = features_[active_features[i]]->EvaluateWhenApplied(hypo, in_state.states[i], score.get());
+    scc.ZeroAll();
+    ret->states[i] = features_[active_features[i]]->EvaluateWhenApplied(hypo, in_state.states[i], &scc);
+    score->Assign(active_features[i], scc.getCoreFeatures()[0]);
   }
 
   if(OOVFeatureEnabled()) {
