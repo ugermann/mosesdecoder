@@ -168,6 +168,7 @@ void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
   const StaticData& staticData = StaticData::Instance();
 
   // (1-alpha) * P_background + alpha * P_adaptive -- see docstring for this->alpha_
+  float alpha = alpha_;
 
   // obtain domain weights
   std::map<std::string, float> weight_map;
@@ -178,19 +179,19 @@ void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
       weight_map.insert(*it);
   } else {
     // fall back to uniform weights
-    for(std::vector<LanguageModel *>::iterator it = adaptive_.begin(); it != adaptive_.end(); ++it)
-      weight_map[(*it)->GetScoreProducerDescription()] = 1.0;
-    XVERBOSE(1, "MUXLM: no context weights, uniform weight fallback.\n");
+    alpha = 0.0;
+    XVERBOSE(1, "MUXLM: warning: no context weights, not running any LM interpolation, only background LM (effectively using alpha=0.0).\n");
   }
-  normalize_weights(weight_map, alpha_); // normalize sum to alpha_
+  normalize_weights(weight_map, alpha); // normalize sum to alpha
 
   // first feature is background LM
-  XVERBOSE(2, "MUXLM: weight_background = " << (1.0f - alpha_) << "\n");
-  new_weights.push_back(1.0f - alpha_);
+  XVERBOSE(2, "MUXLM: weight_background = " << (1.0f - alpha) << "\n");
+  new_weights.push_back(1.0f - alpha);
   // next features are adaptive LMs
   for(size_t i = 0; i < adaptive_.size(); i++) {
-    XVERBOSE(2, "MUXLM: weight[" << adaptive_[i]->GetScoreProducerDescription() << "] = " << weight_map[adaptive_[i]->GetScoreProducerDescription()] << "\n");
-    new_weights.push_back(weight_map[adaptive_[i]->GetScoreProducerDescription()]);
+    float weight = weight_map[adaptive_[i]->GetScoreProducerDescription()];
+    new_weights.push_back(weight);
+    XVERBOSE(2, "MUXLM: weight[" << adaptive_[i]->GetScoreProducerDescription() << "] = " << weight << "\n");
   }
   weights.Assign((size_t) 0, new_weights);
 
