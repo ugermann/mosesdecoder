@@ -75,6 +75,7 @@ protected:
   float alpha_; ///< adaptive fraction. (1-alpha) * P_background + alpha * P_adaptive, see InitializeForInput()
 
   boost::thread_specific_ptr<Weights> weights_; ///< feature weights, specified dynamically for each sentence
+  boost::thread_specific_ptr<std::vector<size_t> > active_features_; ///< active LM indices in features_, specified dynamically for each sentence
   std::vector<LanguageModel *> features_; ///< list of sub-LM FeatureFunctions
 
   LanguageModel* background_; ///< background LM

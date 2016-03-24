@@ -159,9 +159,8 @@ public:
 void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
 {
   // this is called from several different threads and hence it must be thread-safe.
-  weights_.reset(new Weights(features_.size()));
   std::vector<float> new_weights;
-  Weights& weights = *weights_.get();
+  std::vector<size_t> new_lms; // indices into this->features_
 
   // also, I would like two weights to be tuned.
   // hack: add one weight, which we always output as 0 to moses, but ask for the value and use it ourselves.
@@ -186,16 +185,22 @@ void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
 
   // first feature is background LM
   XVERBOSE(2, "MUXLM: weight_background = " << (1.0f - alpha) << "\n");
-  new_weights.push_back(1.0f - alpha);
+  new_lms.push_back(0); new_weights.push_back(1.0f - alpha);
   // next features are adaptive LMs
   for(size_t i = 0; i < adaptive_.size(); i++) {
     float weight = weight_map[adaptive_[i]->GetScoreProducerDescription()];
-    new_weights.push_back(weight);
-    XVERBOSE(2, "MUXLM: weight[" << adaptive_[i]->GetScoreProducerDescription() << "] = " << weight << "\n");
+    if(weight != 0) {
+      new_lms.push_back(i + 1); new_weights.push_back(weight);
+      XVERBOSE(2, "MUXLM: weight[" << adaptive_[i]->GetScoreProducerDescription() << "] = " << weight << "\n");
+    }
   }
-  weights.Assign((size_t) 0, new_weights);
 
-  // TODO: instead of running all LMs, we should collect the LM index and only run non-zero LMs. Others are P = 1.0 (note: why? why not P_avg(word)? But that shouldn't matter since it's const - though maybe it changes the curve?)
+  // instead of running all LMs, we collect the LM index and only run non-zero LMs. Others are P = 1.0
+  // TODO (note: why? why not P_avg(word)? But that shouldn't matter since it's const - though maybe it changes the curve?)
+  active_features_.reset(new std::vector<size_t>(new_lms.begin(), new_lms.end()));
+  weights_.reset(new Weights(new_lms.size()));
+  Weights& weights = *weights_.get();
+  weights.Assign((size_t) 0, new_weights);
 }
 
 
@@ -355,7 +360,7 @@ void LanguageModelMultiplexer::Load(AllOptions::ptr const &opts) {
   // we need to pass this call through to all sub-models
   for (size_t i = 0; i < features_.size(); i++) {
     UTIL_THROW_IF2(features_[i]->GetNumScoreComponents() != 1, "MUXLM only supports FFs with 1 score component");
-    features_[i]->SetIndex(i);
+    features_[i]->SetIndex(0); // it is easier to deal with remapping SCC in MUXLM than to juggle these, they need to be valid across threads
     features_[i]->Load(opts);
   }
 
@@ -458,6 +463,7 @@ EvaluateInIsolation(Phrase const& source, TargetPhrase const& targetPhrase,
 void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore, float &ngramScore, std::size_t &oovCount) const
 {
   Weights& weights = *weights_.get(); // thread-specific weights
+  std::vector<size_t>& active_features = *active_features_.get(); // indices into features_
 
   boost::scoped_ptr<Interpolator> fullScores(CreateInterpolator());
   boost::scoped_ptr<Interpolator> ngramScores(CreateInterpolator());
@@ -466,8 +472,8 @@ void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore,
 
   float full, ngram;
   size_t oovs;
-  for(size_t i = 0; i < features_.size(); i++) {
-    features_[i]->CalcScore(phrase, full, ngram, oovs);
+  for(size_t i = 0; i < active_features.size(); i++) {
+    features_[active_features[i]]->CalcScore(phrase, full, ngram, oovs);
     fullScores->Assign(i, full);
     ngramScores->Assign(i, ngram);
     oovCount = std::min(oovs, oovCount);
@@ -480,12 +486,13 @@ void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore,
 FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const
 {
   Weights& weights = *weights_.get(); // thread-specific weights
+  std::vector<size_t>& active_features = *active_features_.get(); // indices into features_
   const MuxLMState &in_state = static_cast<const MuxLMState&>(*ps);
   MuxLMState *ret = new MuxLMState(features_.size());
 
   boost::scoped_ptr<Interpolator> score(CreateInterpolator());
-  for(size_t i = 0; i < features_.size(); i++) {
-    ret->states[i] = features_[i]->EvaluateWhenApplied(hypo, in_state.states[i], score.get());
+  for(size_t i = 0; i < active_features.size(); i++) {
+    ret->states[i] = features_[active_features[i]]->EvaluateWhenApplied(hypo, in_state.states[i], score.get());
   }
 
   if(OOVFeatureEnabled()) {
