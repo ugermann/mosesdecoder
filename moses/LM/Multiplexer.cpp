@@ -94,10 +94,11 @@ public:
     // assume x >> y. log(a*exp(x) + b*exp(y)) = log(a*exp(x) * (1 + b*exp(y)/exp(x)/a)) = log(a) + x + log(1 + b/a*exp(y-x))
 
     // find the max index: distance(A, max_element(A, A + N))
-    size_t imax = -1;
-    float emax = std::numeric_limits<float>::min();
+    size_t imax = 0;
+    float emax = weighted[imax];
     for(size_t i = 0; i < weighted.size(); i++) {
-      if(weighted[i] > emax) {
+      // the second condition makes sure that we don't get a zero weights[imax] in the rare case that all LMs return 0 probs / -inf scores (TODO: how does this happen? e.g. UNK should be well-defined and score > -inf ...)
+      if(weighted[i] > emax || (weighted[i] == emax && weights[i] > weights[imax])) {
         emax = weighted[i];
         imax = i;
       }
