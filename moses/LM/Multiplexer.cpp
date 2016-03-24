@@ -422,9 +422,11 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(
 
 const FFState* LanguageModelMultiplexer::EmptyHypothesisState(const InputType &input) const
 {
-  MuxLMState *state = new MuxLMState(features_.size());
+  // EmptyHypothesisState() call comes after InitializeForInput(), so we can access the active features
+  std::vector<size_t>& active_features = *active_features_.get(); // indices into features_
+  MuxLMState *state = new MuxLMState(active_features.size());
   for(size_t i = 0; i < state->num_states; i++)
-    state->states[i] = const_cast<FFState*>(features_[i]->EmptyHypothesisState(input));
+    state->states[i] = const_cast<FFState*>(features_[active_features[i]]->EmptyHypothesisState(input));
   return state;
 }
 
@@ -488,7 +490,7 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
   Weights& weights = *weights_.get(); // thread-specific weights
   std::vector<size_t>& active_features = *active_features_.get(); // indices into features_
   const MuxLMState &in_state = static_cast<const MuxLMState&>(*ps);
-  MuxLMState *ret = new MuxLMState(features_.size());
+  MuxLMState *ret = new MuxLMState(active_features.size());
 
   boost::scoped_ptr<Interpolator> score(CreateInterpolator());
   for(size_t i = 0; i < active_features.size(); i++) {
