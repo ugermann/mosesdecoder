@@ -212,6 +212,8 @@ struct MuxLMState : public FFState {
     // individual states are allocated later, externally.
   }
 
+  // to do: implement a "forbidden to copy" constructor
+
   virtual ~MuxLMState() {
     for(size_t i = 0; i < num_states; i++)
       if(states[i] != NULL)
@@ -479,11 +481,6 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
   Weights& weights = *weights_.get(); // thread-specific weights
   const MuxLMState &in_state = static_cast<const MuxLMState&>(*ps);
   MuxLMState *ret = new MuxLMState(features_.size());
-
-  if(!hypo.GetCurrTargetLength()) {
-    *ret = in_state;
-    return ret;
-  }
 
   boost::scoped_ptr<Interpolator> score(CreateInterpolator());
   for(size_t i = 0; i < features_.size(); i++) {
