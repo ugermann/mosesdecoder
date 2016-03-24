@@ -104,12 +104,25 @@ public:
     }
     std::valarray<FValue> diff_raised = std::exp(scores - scores[imax]);
     std::valarray<FValue> diff_raised_weighted = diff_raised * weights / weights[imax];
+
+    // debug: sanity assertions
+    for(size_t i = 0; i < weights.size(); i++)
+      UTIL_THROW_IF2(weights[i] < 0.0, "MUXLM: assert failed: weights[" << i << "] >= 0.0");
+    for(size_t i = 0; i < diff_raised.size(); i++)
+      UTIL_THROW_IF2(diff_raised[i] < 0.0, "MUXLM: assert failed: diff_raised[" << i << "] >= 0.0");
+    for(size_t i = 0; i < diff_raised_weighted.size(); i++)
+      UTIL_THROW_IF2(diff_raised_weighted[i] < 0.0, "MUXLM: assert failed: diff_raised_weighted[" << i << "] >= 0.0");
+    UTIL_THROW_IF2(weights.size() != diff_raised.size(), "MUXLM: assert failed: weights.size() == diff_raised.size()");
+    UTIL_THROW_IF2(diff_raised_weighted.size() != diff_raised.size(), "MUXLM: assert failed: diff_raised_weighted.size() == diff_raised.size()");
+    // debug: end sanity assertions
+
     float in_product = 0.0;
     // since we are using log1p, avoid adding the max element itself, which a/a*exp(x-x) == 1.0
     // compute in_product = b/a*exp(y-x) + ...
     for(size_t i = 0; i < diff_raised_weighted.size(); i++)
       if(i != imax)
         in_product += diff_raised_weighted[i];
+    UTIL_THROW_IF2(in_product < 0.0, "MUXLM: assert failed: in_product >= 0.0"); // DEBUG only
     float interpolated = log(weights[imax]) + scores[imax] + boost::math::log1p(in_product);
 
     return interpolated;
