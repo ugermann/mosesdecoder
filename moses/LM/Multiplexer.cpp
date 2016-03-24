@@ -184,14 +184,14 @@ void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
   normalize_weights(weight_map, alpha); // normalize sum to alpha
 
   // first feature is background LM
-  XVERBOSE(2, "MUXLM: weight_background = " << (1.0f - alpha) << "\n");
+  XVERBOSE(1, "MUXLM: weight_background = " << (1.0f - alpha) << "\n");
   new_lms.push_back(0); new_weights.push_back(1.0f - alpha);
   // next features are adaptive LMs
   for(size_t i = 0; i < adaptive_.size(); i++) {
     float weight = weight_map[adaptive_[i]->GetScoreProducerDescription()];
-    if(weight != 0) {
+    if(weight != 0.0) {
       new_lms.push_back(i + 1); new_weights.push_back(weight);
-      XVERBOSE(2, "MUXLM: weight[" << adaptive_[i]->GetScoreProducerDescription() << "] = " << weight << "\n");
+      XVERBOSE(1, "MUXLM: weight[" << adaptive_[i]->GetScoreProducerDescription() << "] = " << weight << "\n");
     }
   }
 
@@ -464,7 +464,6 @@ EvaluateInIsolation(Phrase const& source, TargetPhrase const& targetPhrase,
 
 void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore, float &ngramScore, std::size_t &oovCount) const
 {
-  Weights& weights = *weights_.get(); // thread-specific weights
   std::vector<size_t>& active_features = *active_features_.get(); // indices into features_
 
   boost::scoped_ptr<Interpolator> fullScores(CreateInterpolator());
@@ -487,7 +486,6 @@ void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore,
 
 FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const
 {
-  Weights& weights = *weights_.get(); // thread-specific weights
   std::vector<size_t>& active_features = *active_features_.get(); // indices into features_
   const MuxLMState &in_state = static_cast<const MuxLMState&>(*ps);
   MuxLMState *ret = new MuxLMState(active_features.size());
