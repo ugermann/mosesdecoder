@@ -330,7 +330,7 @@ VERBOSE(1,"int LanguageModelIRST::GetLmID( const Factor *factor ) const version 
 
 const FFState* LanguageModelIRST::EmptyHypothesisState(const InputType &/*input*/) const
 {
-  VERBOSE(2,"const FFState* LanguageModelIRST::EmptyHypothesisState(const InputType &/*input*/)"<< std::endl);
+  VERBOSE(3,"const FFState* LanguageModelIRST::EmptyHypothesisState(const InputType &/*input*/)"<< std::endl);
   std::auto_ptr<IRSTLMState> ret(new IRSTLMState());
 
   return ret.release();
@@ -339,7 +339,7 @@ const FFState* LanguageModelIRST::EmptyHypothesisState(const InputType &/*input*
 
 void LanguageModelIRST::CalcScore(const Phrase &phrase, float &fullScore, float &ngramScore, size_t &oovCount) const
 {
-  VERBOSE(2,"void LanguageModelIRST::CalcScore(const Phrase &phrase, ...) START id:|" << m_id << "| phrase:|" << phrase << "|" << std::endl);
+  VERBOSE(4,"void LanguageModelIRST::CalcScore(const Phrase &phrase, ...) START id:|" << m_id << "| phrase:|" << phrase << "|" << std::endl);
 
   fullScore = 0;
   ngramScore = 0;
@@ -352,7 +352,7 @@ void LanguageModelIRST::CalcScore(const Phrase &phrase, float &fullScore, float 
   double_vec_t* weight_vec = t_interpolation_weights_vec.get();
 
   if (weight_map && weight_map->size()>0){
-    VERBOSE(2,"void LanguageModelIRST::CalcScore(const Phrase &phrase, ...) weight_map->size():|" << weight_map->size() << "|" << std::endl);
+    VERBOSE(4,"void LanguageModelIRST::CalcScore(const Phrase &phrase, ...) weight_map->size():|" << weight_map->size() << "|" << std::endl);
   }
   int _min = min((int) m_lmtb_size - 1, (int) phrase.GetSize());
 
@@ -403,7 +403,7 @@ void LanguageModelIRST::CalcScore(const Phrase &phrase, float &fullScore, float 
 
 FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const
 {
-  VERBOSE(2,"FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const"<< std::endl);
+  VERBOSE(4,"FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const"<< std::endl);
   if (!hypo.GetCurrTargetLength()) {
     std::auto_ptr<IRSTLMState> ret(new IRSTLMState(*((IRSTLMState*)ps)));
     return ret.release();
