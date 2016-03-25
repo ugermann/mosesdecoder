@@ -129,6 +129,8 @@ public:
     : m_scores(rhs.m_scores) {
   }
 
+  virtual ~ScoreComponentCollection();
+
   ScoreComponentCollection& operator=( const ScoreComponentCollection& rhs ) {
     m_denseVectorSize = rhs.m_denseVectorSize;
     m_scores = rhs.m_scores;

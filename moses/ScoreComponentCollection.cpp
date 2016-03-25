@@ -63,6 +63,9 @@ ScoreComponentCollection(size_t denseVectorSize)
     : m_scores(denseVectorSize), m_denseVectorSize(denseVectorSize)
 {}
 
+ScoreComponentCollection::
+~ScoreComponentCollection()
+{}
 
 void
 ScoreComponentCollection::

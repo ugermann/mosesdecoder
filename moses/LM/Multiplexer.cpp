@@ -48,6 +48,7 @@ public:
   Interpolator(const ScoreComponentCollection& weights):
       ScoreComponentCollection(weights.getCoreFeatures().size()), m_weights(weights)
   {}
+  virtual ~Interpolator() {}
 
   virtual float GetInterpolatedScore() = 0;
 
@@ -63,6 +64,7 @@ public:
   LogLinearInterpolator(const ScoreComponentCollection& weights):
       Interpolator(weights)
   {}
+  virtual ~LogLinearInterpolator() {}
 
   virtual float GetInterpolatedScore() {
     return GetWeightedScore(this->m_weights);
@@ -77,6 +79,7 @@ public:
   LinearLSEInterpolator(const ScoreComponentCollection& weights):
       Interpolator(weights)
   {}
+  virtual ~LinearLSEInterpolator() {}
 
   virtual float GetInterpolatedScore() {
     // log-sum-exp, with weighted sum
@@ -141,6 +144,7 @@ public:
   LinearPlainInterpolator(const ScoreComponentCollection& weights):
       Interpolator(weights)
   {}
+  virtual ~LinearPlainInterpolator() {}
 
   virtual float GetInterpolatedScore() {
     const std::valarray<FValue> &scores = this->m_scores.getCoreFeatures();
@@ -161,6 +165,7 @@ public:
   MaxInterpolator(const ScoreComponentCollection& weights):
       Interpolator(weights)
   {}
+  virtual ~MaxInterpolator() {}
 
   virtual float GetInterpolatedScore() {
     const std::valarray<FValue> &scores = this->m_scores.getCoreFeatures();
