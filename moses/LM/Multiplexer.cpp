@@ -568,8 +568,11 @@ void LanguageModelMultiplexer::normalize_weights(std::map<std::string, float>& m
 
 void LanguageModelMultiplexer::CleanUpAfterSentenceProcessing(const InputType& source)
 {
+  VERBOSE(2,"void LanguageModelMultiplexer::CleanUpAfterSentenceProcessing(const InputType& source)" << std::endl);
+
   // this is called from several different threads and hence it must be thread-safe.
   weights_.reset(NULL);
+  active_features_.reset(NULL);
 }
 
 bool LanguageModelMultiplexer::IsUseable(const FactorMask &mask) const
