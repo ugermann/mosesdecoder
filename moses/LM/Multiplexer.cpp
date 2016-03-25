@@ -387,11 +387,16 @@ LanguageModelMultiplexer::initialize_features()
 
 void LanguageModelMultiplexer::Load(AllOptions::ptr const &opts) {
   // we need to pass this call through to all sub-models
+
+  XVERBOSE(1, "MUXLM: loading sub-LMs ...\n");
   for (size_t i = 0; i < features_.size(); i++) {
     UTIL_THROW_IF2(features_[i]->GetNumScoreComponents() != 1, "MUXLM only supports FFs with 1 score component");
     features_[i]->SetIndex(0); // it is easier to deal with remapping SCC in MUXLM than to juggle these, they need to be valid across threads
+    XVERBOSE(1, "MUXLM: loading sub-LM ID " << i << " ...\n");
     features_[i]->Load(opts);
+    XVERBOSE(1, "MUXLM: loading sub-LM ID " << i << " done.\n");
   }
+  XVERBOSE(1, "MUXLM: loading sub-LMs done.\n");
 
   // check some bounds for alpha
   XVERBOSE(2, "MUXLM: alpha = " << alpha_ << "\n");
@@ -414,6 +419,7 @@ void LanguageModelMultiplexer::SetParameter(const std::string& key, const std::s
     } else {
       UTIL_THROW2("ERROR: invalid function name for MUXLM: '" << function << "'");
     }
+    XVERBOSE(1, "MUXLM: function = " << function << "\n");
   } else if (key == "alpha") {
     alpha_ = Scan<float>(value);
   } else if (key == "background-lm") {
