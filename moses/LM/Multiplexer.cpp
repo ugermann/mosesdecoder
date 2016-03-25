@@ -331,7 +331,7 @@ void myreplace(std::string &s, const std::string &toReplace, const std::string &
 }
 
 // this is almost a straight copy of StaticData::initialize_features(), but uses a different
-// moses.ini section name ([<name>] instead of [feature], where <name> is MUXLM name= parameter),
+// section name [muxlm] for the adaptive.lm meta-moses.ini file that is specified for path=/path/to/adaptive.lm
 // and a different FeatureSetup for the FeatureRegistry, so our sub-features are not registered with moses.
 // TODO: how to unify these? Maybe initialize_features() could be moved to FeatureRegistry (from StaticData and here).
 void
@@ -344,16 +344,6 @@ LanguageModelMultiplexer::initialize_features()
   SPTR<MuxFeatureSetup> setup(new MuxFeatureSetup(this->features_)); // fills this->features_ with the created FF objects.
   FeatureRegistry registry(setup);
 
-  /*
-   * Unfortunately, the way the Parameter parser works on moses.ini, we verify that each section name
-   * is a valid parameter. We could either lift that restriction (and potentially make misspelled sections
-   * have no effect), or we could add to Parameter::m_valid dynamically after having parsed the MUXLM feature
-   * line (which makes the [<name>] section valid, but only *after* [feature] having defined the MUXLM...
-   *
-   * Since neither of these options is very satisfying, I will hardcode a maximum of one of MUXLM.
-   */
-  UTIL_THROW_IF2(m_description != "muxlm", "MUXLM must have name=muxlm, and only one of this feature is allowed.");
-
   // note: ideally, we should be able to parse an INI file without checking for moses parameters... herp derp duh.
   Moses::Parameter config;
   bool success = config.LoadParam(this->m_filePath);
@@ -364,7 +354,7 @@ LanguageModelMultiplexer::initialize_features()
   boost::filesystem::path path = this->m_filePath;
   boost::filesystem::path replacement = path.parent_path(); // get path to LMs
 
-  const PARAM_VEC* params = config.GetParam(m_description); // get moses.ini section [<name>]
+  const PARAM_VEC* params = config.GetParam("muxlm"); // get moses.ini section [muxlm]
   for (size_t i = 0; params && i < params->size(); ++i) {
     string line = Trim(params->at(i));
     myreplace(line, path_placeholder, replacement.native() + "/");
