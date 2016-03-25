@@ -1,6 +1,7 @@
 
 #include "Multiplexer.h"
 
+#include <boost/filesystem/path.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <map>
@@ -324,6 +325,10 @@ LanguageModelMultiplexer::~LanguageModelMultiplexer()
 {
 }
 
+void myreplace(std::string &s, const std::string &toReplace, const std::string &replaceWith) {
+  // replace() mutates the string
+  s.replace(s.find(toReplace), toReplace.length(), replaceWith);
+}
 
 // this is almost a straight copy of StaticData::initialize_features(), but uses a different
 // moses.ini section name ([<name>] instead of [feature], where <name> is MUXLM name= parameter),
@@ -354,9 +359,16 @@ LanguageModelMultiplexer::initialize_features()
   bool success = config.LoadParam(this->m_filePath);
   UTIL_THROW_IF2(!success, "MUXLM failed to load path=" << this->m_filePath);
 
+  // allow relative paths for MMT by replacing placeholder with path to LMs
+  const std::string path_placeholder = "${LM_PATH}";
+  boost::filesystem::path path = this->m_filePath;
+  boost::filesystem::path replacement = path.parent_path(); // get path to LMs
+
   const PARAM_VEC* params = config.GetParam(m_description); // get moses.ini section [<name>]
   for (size_t i = 0; params && i < params->size(); ++i) {
-    const string &line = Trim(params->at(i));
+    string line = Trim(params->at(i));
+    myreplace(line, path_placeholder, replacement.native() + "/");
+
     VERBOSE(1,"line=" << line << endl);
     if (line.empty())
       continue;
