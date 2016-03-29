@@ -257,7 +257,7 @@ struct MuxLMState : public FFState {
     for(size_t i = 0; i < num_states; i++)
       if(states[i] != NULL)
         delete states[i];
-    delete states;
+    delete[] states;
   }
 
   virtual size_t hash() const {
