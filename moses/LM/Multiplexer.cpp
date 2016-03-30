@@ -332,7 +332,9 @@ LanguageModelMultiplexer::~LanguageModelMultiplexer()
 
 void myreplace(std::string &s, const std::string &toReplace, const std::string &replaceWith) {
   // replace() mutates the string
-  s.replace(s.find(toReplace), toReplace.length(), replaceWith);
+  size_t pos = s.find(toReplace);
+  if(pos != std::string::npos)
+    s.replace(pos, toReplace.length(), replaceWith);
 }
 
 // this is almost a straight copy of StaticData::initialize_features(), but uses a different
