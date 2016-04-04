@@ -438,6 +438,8 @@ Interpolator* LanguageModelMultiplexer::CreateInterpolator() const
 {
   const Weights& weights = *weights_.get(); // thread-specific weights
 
+  UTIL_THROW_IF2(weights_.get() == NULL, "MUXLM: cannot interpolate with NULL weights, you must InitializeForInput() first");
+
   switch(function_) {
     case INTERPOLATE_LINEAR:
       return new LinearLSEInterpolator(weights);
