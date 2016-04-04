@@ -101,13 +101,15 @@ int main(int argc, char* argv[])
       for (size_t i = 0; i < snt.size(); ++i)
 	{
 	  bitext_t::iter m(B->I1.get());
-	  for (size_t k = i; k < snt.size() && m.extend(snt[k]); ++k);
+    size_t k;
+    for (k = i; k < snt.size() && m.extend(snt[k]); ++k);
 	  for (size_t num_occurrences = 0; m.size(); m.up())
 	    {
 	      if (size_t(m.ca()) == num_occurrences) continue;
 	      num_occurrences = m.ca();
 	      SPTR<SamplingBias const> zilch;
-	      BitextSampler<Token> s(B, m, zilch, 1000, 1000, 
+        vector<id_type> sp(snt.begin() + i, snt.begin() + k);
+	      BitextSampler<Token> s(B, sp, /* fwd = */ true, zilch, 1000, 1000,
 				     sapt::random_sampling);
 	      s();
 	      if (s.stats()->trg.size() == 0) continue;
@@ -121,7 +123,7 @@ int main(int argc, char* argv[])
 		   << " occ.)" << endl;
 	      vector<PhrasePair<Token> > ppairs;
 	      PhrasePair<Token>::SortDescendingByJointCount sorter;
-	      expand(m,*B,*s.stats(),ppairs,NULL);
+        expand(m.getPid(), phrase<Token>(sp), /* fwd = */ true, *B,*s.stats(),ppairs,NULL);
 	      sort(ppairs.begin(),ppairs.end(),sorter);
 	      boost::format fmt("%4d/%d/%d |%s| (%4.2f : %4.2f)"); 
 	      size_t ctr = 0;
@@ -145,7 +147,7 @@ int main(int argc, char* argv[])
 #if 1
 		  cout << "\t" 
 		       << (fmt % ppair.joint % ppair.good1 % ppair.good2
-			   % B->T2->pid2str(B->V2.get(),ppair.p2)
+			   % toString(*B->V2.get(), ppair.start2, ppair.len2)
 			   % (float(ppair.joint)/ppair.good1)
 			   % (float(ppair.joint)/ppair.good2)
 			   ) << "\n";
