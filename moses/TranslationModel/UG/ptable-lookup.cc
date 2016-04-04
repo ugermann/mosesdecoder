@@ -90,7 +90,7 @@ int main(int argc, char const* argv[])
       if (context_weights != "" && !ttask->GetScope()->GetContextWeights())
         ttask->GetScope()->SetContextWeights(context_weights);
 
-      PT->InitializeForInput(ttask);
+      StaticData::Instance().InitializeForInput(ttask);
       
       Phrase const& p = *phrase;
       cout << p << endl;

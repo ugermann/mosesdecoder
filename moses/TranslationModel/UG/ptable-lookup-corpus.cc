@@ -67,9 +67,12 @@ int main(int argc, char const* argv[])
         ttask = TranslationTask::create(phrase, none, scope);
 	
         // Support model combinations (PhraseDictionaryGroup)
+        /*
         BOOST_FOREACH(PhraseDictionary* p, PhraseDictionary::GetColl()) {
           p->InitializeForInput(ttask);
         }
+         */
+        StaticData::Instance().InitializeForInput(ttask);
 
         // Query PhraseDictionary
         TargetPhraseCollection::shared_ptr tgts = pt->GetTargetPhraseCollectionLEGACY(ttask, src);
