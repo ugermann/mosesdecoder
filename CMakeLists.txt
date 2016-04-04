@@ -80,3 +80,9 @@ target_link_libraries(moses ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} ${IRSTLM_LIBRAR
 add_executable(moses-main moses-cmd/Main.cpp)
 target_link_libraries(moses-main ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES} moses)
 link_directories(${mosesdecoder_BINARY_DIR}/moses)  # link against libmoses.so
+
+add_executable(ptable-lookup moses/TranslationModel/UG/ptable-lookup.cc)
+target_link_libraries(ptable-lookup ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES} moses)
+
+add_executable(ptable-lookup-corpus moses/TranslationModel/UG/ptable-lookup-corpus.cc)
+target_link_libraries(ptable-lookup-corpus ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES} moses)
