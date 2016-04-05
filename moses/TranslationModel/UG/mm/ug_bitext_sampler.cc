@@ -2,6 +2,16 @@
 
 #include "ug_bitext_sampler.h"
 
+#ifndef NO_MOSES
+// for XVERBOSE
+#include "moses/StaticData.h"
+#include "moses/Util.h"
+#else
+// no moses
+#define XVERBOSE(level,str) do {} while(false)
+#define IFVERBOSE(level) if(false)
+#endif
+
 #include "util/usage.hh"
 #include <sys/time.h>
 #include <iomanip>
@@ -10,13 +20,14 @@
 
 // current time: unix timestamp with microsecond precision
 double current_time() {
-/*
+#ifndef NO_MOSES
+  return util::WallTime();
+#else
   struct timeval tv;
   gettimeofday(&tv,NULL);
   double cur_time = static_cast<double>(1000000ULL * tv.tv_sec + tv.tv_usec) / 1e6;
   return cur_time;
-*/
-  return util::WallTime();
+#endif
 }
 
 std::string format_time(double cur_time) {
