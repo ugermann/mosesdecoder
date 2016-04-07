@@ -36,7 +36,7 @@ using namespace std;
 namespace Moses
 {
 PhraseDictionaryOnDisk::PhraseDictionaryOnDisk(const std::string &line)
-  : MyBase(line, true)
+  : MyBase(line)
   , m_maxSpanDefault(NOT_FOUND)
   , m_maxSpanLabelled(NOT_FOUND)
 {
