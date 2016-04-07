@@ -83,9 +83,6 @@ protected:
   std::vector<LanguageModel *> adaptive_; ///< adaptive LMs
 
 private:
-  /** Create the wrapped sub-LMs from the moses.ini section with our name */
-  void CreateSubModels();
-
   void initialize_features();
 
   /** normalize the provided weights map to sum to alpha */

@@ -113,6 +113,7 @@ public:
     std::valarray<FValue> diff_raised_weighted = diff_raised * diff_raised_div;
     // bracketing matters above: compute the weight first (which is division of a reasonably large number)
 
+#ifndef NDEBUG
     // debug: sanity assertions
     for(size_t i = 0; i < weights.size(); i++)
       UTIL_THROW_IF2(weights[i] < 0.0, "MUXLM: assert failed: weights[" << i << "] >= 0.0");
@@ -125,6 +126,7 @@ public:
     UTIL_THROW_IF2(weights.size() != diff_raised.size(), "MUXLM: assert failed: weights.size() == diff_raised.size()");
     UTIL_THROW_IF2(diff_raised_weighted.size() != diff_raised.size(), "MUXLM: assert failed: diff_raised_weighted.size() == diff_raised.size()");
     // debug: end sanity assertions
+#endif
 
     float in_product = 0.0;
     // since we are using log1p, avoid adding the max element itself, which a/a*exp(x-x) == 1.0
@@ -132,7 +134,9 @@ public:
     for(size_t i = 0; i < diff_raised_weighted.size(); i++)
       if(i != imax)
         in_product += diff_raised_weighted[i];
+#ifndef NDEBUG
     UTIL_THROW_IF2(in_product < 0.0, "MUXLM: assert failed: in_product >= 0.0"); // DEBUG only
+#endif
     float interpolated = log(weights[imax]) + scores[imax] + boost::math::log1p(in_product);
 
     return interpolated;
