@@ -23,6 +23,7 @@
 
 find_path(GooglePerftools_ROOT_DIR
     NAMES include/google/heap-profiler.h
+    PATHS ENV GooglePerftools_ROOT_DIR
 )
 
 find_library(GooglePerftools_LIBRARIES_DEBUG
