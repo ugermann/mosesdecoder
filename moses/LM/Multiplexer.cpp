@@ -214,9 +214,10 @@ void LanguageModelMultiplexer::InitializeForInput(ttasksptr const& ttask)
     for(std::map<std::string, float>::const_iterator it = w->begin(); it != w->end(); ++it)
       weight_map.insert(*it);
   } else {
-    // fall back to uniform weights
-    alpha = 0.0;
-    XVERBOSE(1, "MUXLM: warning: no context weights, not running any LM interpolation, only background LM (effectively using alpha=0.0).\n");
+    // fall back to uniform weights.
+    XVERBOSE(1, "MUXLM: warning: no context weights, using uniform weights for running ALL adaptive LMs, times alpha=" << alpha << ".\n");
+    for(std::vector<LanguageModel *>::iterator it = adaptive_.begin(); it != adaptive_.end(); ++it)
+      weight_map[(*it)->GetScoreProducerDescription()] = 1.0f;
   }
   normalize_weights(weight_map, alpha); // normalize sum to alpha
 

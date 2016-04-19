@@ -77,7 +77,7 @@ protected:
 
   boost::thread_specific_ptr<Weights> weights_; ///< feature weights (in active_features_ order), specified dynamically for each sentence
   boost::thread_specific_ptr<std::vector<size_t> > active_features_; ///< active LM indices in features_, specified dynamically for each sentence
-  std::vector<LanguageModel *> features_; ///< list of sub-LM FeatureFunctions
+  std::vector<LanguageModel *> features_; ///< list of sub-LM FeatureFunctions (including background LM)
 
   LanguageModel* background_; ///< background LM
   std::vector<LanguageModel *> adaptive_; ///< adaptive LMs
