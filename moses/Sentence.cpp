@@ -107,13 +107,6 @@ aux_interpret_sgml_markup(string& line)
       this->SetUseTopicIdAndProb(true);
     }
   }
-  if ((i = meta.find("weight-setting")) != meta.end()) {
-    this->SetWeightSetting(i->second);
-    this->SetSpecifiesWeightSetting(true);
-    StaticData::Instance().SetWeightSetting(i->second);
-    // oh this is so horrible! Why does this have to be propagated globally?
-    // --- UG
-  } else this->SetSpecifiesWeightSetting(false);
 }
 
 void

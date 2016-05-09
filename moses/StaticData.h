@@ -75,7 +75,7 @@ protected:
   Parameter *m_parameter;
   boost::shared_ptr<AllOptions> m_options;
 
-  mutable ScoreComponentCollection m_allWeights;
+  ScoreComponentCollection m_allWeights;
 
   std::vector<DecodeGraph*> m_decodeGraphs;
 
@@ -113,12 +113,6 @@ protected:
 
   int m_threadCount;
   // long m_startTranslationId;
-
-  // alternate weight settings
-  mutable std::string m_currentWeightSetting;
-  std::map< std::string, ScoreComponentCollection* > m_weightSetting; // core weights
-  std::map< std::string, std::set< std::string > > m_weightSettingIgnoreFF; // feature function
-  std::map< std::string, std::set< size_t > > m_weightSettingIgnoreDP; // decoding path
 
   bool m_useLegacyPT;
   // bool m_defaultNonTermOnlyForEmptyRange;
@@ -268,74 +262,9 @@ public:
     return m_bookkeeping_options.need_alignment_info;
   }
 
-  bool GetHasAlternateWeightSettings() const {
-    return m_weightSetting.size() > 0;
-  }
-
-  /** Alternate weight settings allow the wholesale ignoring of
-      feature functions. This function checks if a feature function
-      should be evaluated given the current weight setting */
   bool IsFeatureFunctionIgnored( const FeatureFunction &ff ) const {
-    if (!GetHasAlternateWeightSettings()) {
-      return false;
-    }
-    std::map< std::string, std::set< std::string > >::const_iterator lookupIgnoreFF
-    =  m_weightSettingIgnoreFF.find( m_currentWeightSetting );
-    if (lookupIgnoreFF == m_weightSettingIgnoreFF.end()) {
-      return false;
-    }
-    const std::string &ffName = ff.GetScoreProducerDescription();
-    const std::set< std::string > &ignoreFF = lookupIgnoreFF->second;
-    return ignoreFF.count( ffName );
-  }
-
-  /** Alternate weight settings allow the wholesale ignoring of
-      decoding graphs (typically a translation table). This function
-      checks if a feature function should be evaluated given the
-      current weight setting */
-  bool IsDecodingGraphIgnored( const size_t id ) const {
-    if (!GetHasAlternateWeightSettings()) {
-      return false;
-    }
-    std::map< std::string, std::set< size_t > >::const_iterator lookupIgnoreDP
-    =  m_weightSettingIgnoreDP.find( m_currentWeightSetting );
-    if (lookupIgnoreDP == m_weightSettingIgnoreDP.end()) {
-      return false;
-    }
-    const std::set< size_t > &ignoreDP = lookupIgnoreDP->second;
-    return ignoreDP.count( id );
-  }
-
-  /** process alternate weight settings
-    * (specified with [alternate-weight-setting] in config file) */
-  void SetWeightSetting(const std::string &settingName) const {
-
-    // if no change in weight setting, do nothing
-    if (m_currentWeightSetting == settingName) {
-      return;
-    }
-
-    // model must support alternate weight settings
-    if (!GetHasAlternateWeightSettings()) {
-      std::cerr << "Warning: Input specifies weight setting, but model does not support alternate weight settings.";
-      return;
-    }
-
-    // find the setting
-    m_currentWeightSetting = settingName;
-    std::map< std::string, ScoreComponentCollection* >::const_iterator i =
-      m_weightSetting.find( settingName );
-
-    // if not found, resort to default
-    if (i == m_weightSetting.end()) {
-      std::cerr << "Warning: Specified weight setting " << settingName
-                << " does not exist in model, using default weight setting instead";
-      i = m_weightSetting.find( "default" );
-      m_currentWeightSetting = "default";
-    }
-
-    // set weights
-    m_allWeights = *(i->second);
+    // a stub left after removing the horror contraption officially dubbed "alternate weight settings"
+    return false;
   }
 
   float GetWeightWordPenalty() const;
@@ -351,8 +280,6 @@ public:
   void LoadFeatureFunctions();
   bool CheckWeights() const;
   void LoadSparseWeightsFromConfig();
-  bool LoadWeightSettings();
-  bool LoadAlternateWeightSettings();
 
   std::map<std::string, std::string> OverrideFeatureNames() const;
   void OverrideFeatures();
@@ -380,8 +307,6 @@ public:
   const std::vector< std::vector<Word> >& GetSoftMatches() const {
     return m_softMatchesMap;
   }
-
-  void ResetWeights(const std::string &denseWeights, const std::string &sparseFile);
 
   // need global access for output of tree structure
   const StatefulFeatureFunction* GetTreeStructure() const {

@@ -162,7 +162,6 @@ Parameter::Parameter()
   AddParam(input_opts,"xml-input", "xi", "allows markup of input with desired translations and probabilities. values can be 'pass-through' (default), 'inclusive', 'exclusive', 'constraint', 'ignore'");
   AddParam(input_opts,"xml-brackets", "xb", "specify strings to be used as xml tags opening and closing, e.g. \"{{ }}\" (default \"< >\"). Avoid square brackets because of configuration file format. Valid only with text input mode" );
   AddParam(input_opts,"start-translation-id", "Id of 1st input. Default = 0");
-  AddParam(input_opts,"alternate-weight-setting", "aws", "alternate set of weights to used per xml specification");
 
   ///////////////////////////////////////////////////////////////////////////////////////
   // output options

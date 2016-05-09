@@ -116,16 +116,6 @@ void Manager::Decode()
     GetSentenceStats().StartTimeTotal();
   }
 
-  // check if alternate weight setting is used
-  // this is not thread safe! it changes StaticData
-  if (StaticData::Instance().GetHasAlternateWeightSettings()) {
-    if (m_source.GetSpecifiesWeightSetting()) {
-      StaticData::Instance().SetWeightSetting(m_source.GetWeightSetting());
-    } else {
-      StaticData::Instance().SetWeightSetting("default");
-    }
-  }
-
   // get translation options
   IFVERBOSE(1) {
     GetSentenceStats().StartTimeCollectOpts();
