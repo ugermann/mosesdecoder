@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "moses/FF/DistortionScoreProducer.h"
 #include "TranslationOptionList.h"
 #include "Manager.h"
+#include "TranslationTask.h"
 
 namespace Moses
 {
@@ -138,6 +139,9 @@ BackwardsEdge::BackwardsEdge(const BitmapContainer &prevBitmapContainer
     return;
   }
 
+  // obtain a faster shorthand for getting weights later in EvaluateWhenApplied() calls
+  m_contextScope = parent.GetStack().GetManager().GetTtask()->GetScope().get();
+
   // Fetch the things we need for distortion cost computation.
   // int maxDistortion = StaticData::Instance().GetMaxDistortion();
   int maxDistortion  = itype.options()->reordering.max_distortion;
@@ -229,7 +233,7 @@ Hypothesis *BackwardsEdge::CreateHypothesis(const Hypothesis &hypothesis, const 
   IFVERBOSE(2) {
     hypothesis.GetManager().GetSentenceStats().StopTimeBuildHyp();
   }
-  newHypo->EvaluateWhenApplied(m_estimatedScore);
+  newHypo->EvaluateWhenApplied(m_estimatedScore, m_contextScope->GetFeatureWeights());
 
   return newHypo;
 }
@@ -395,6 +399,12 @@ const BackwardsEdgeSet&
 BitmapContainer::GetBackwardsEdges()
 {
   return m_edges;
+}
+
+const HypothesisStack&
+BitmapContainer::GetStack() const
+{
+  return m_stack;
 }
 
 void

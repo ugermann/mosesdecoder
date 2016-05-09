@@ -2,6 +2,7 @@
 #include "Timer.h"
 #include "SearchNormal.h"
 #include "SentenceStats.h"
+#include "TranslationTask.h"
 
 #include <boost/foreach.hpp>
 
@@ -22,6 +23,8 @@ SearchNormal(Manager& manager, const TranslationOptionCollection &transOptColl)
   , m_transOptColl(transOptColl)
 {
   VERBOSE(1, "Translating: " << m_source << endl);
+
+  m_contextScope = m_manager.GetTtask()->GetScope().get();
 
   // initialize the stacks: create data structure and set limits
   std::vector < HypothesisStackNormal >::iterator iterStack;
@@ -297,7 +300,7 @@ void SearchNormal::ExpandHypothesis(const Hypothesis &hypothesis,
     IFVERBOSE(2) {
       m_manager.GetSentenceStats().StartTimeOtherScore();
     }
-    newHypo->EvaluateWhenApplied(estimatedScore);
+    newHypo->EvaluateWhenApplied(estimatedScore, m_contextScope->GetFeatureWeights());
     IFVERBOSE(2) {
       m_manager.GetSentenceStats().StopTimeOtherScore();
 

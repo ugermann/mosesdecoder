@@ -176,6 +176,11 @@ public:
     m_feature_weights = w;
     return true;
   }
+
+  const ScoreComponentCollection& GetFeatureWeights() const {
+    // TODO: implement me properly - set an SCC class attribute in SetFeatureWeights()
+    return StaticData::Instance().GetAllWeights();
+  }
 };
 
 };

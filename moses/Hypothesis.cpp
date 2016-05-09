@@ -144,7 +144,7 @@ AddArc(Hypothesis *loserHypo)
  */
 void
 Hypothesis::
-EvaluateWhenApplied(float estimatedScore)
+EvaluateWhenApplied(float estimatedScore, const ScoreComponentCollection& weights)
 {
   const StaticData &staticData = StaticData::Instance();
 
@@ -178,7 +178,7 @@ EvaluateWhenApplied(float estimatedScore)
   m_estimatedScore = estimatedScore;
 
   // TOTAL
-  m_futureScore = m_currScoreBreakdown.GetWeightedScore() + m_estimatedScore;
+  m_futureScore = m_currScoreBreakdown.GetWeightedScore(weights) + m_estimatedScore;
   if (m_prevHypo) m_futureScore += m_prevHypo->GetScore();
 }
 
