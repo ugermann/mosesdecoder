@@ -39,6 +39,7 @@ protected:
 #endif
   SPTR< std::map<std::string,float> const> m_context_weights;
   SPTR< std::map<std::string,float> const> m_lm_interpolation_weights;
+  SPTR< std::map<std::string, std::vector<float> > const> m_feature_weights;
 public:
   typedef boost::shared_ptr<ContextScope> ptr;
   template<typename T>
@@ -161,6 +162,18 @@ public:
     // may have changed while we waited for the lock
     if (m_lm_interpolation_weights) return false;
     m_lm_interpolation_weights = w;
+    return true;
+  }
+
+  bool
+  SetFeatureWeights(SPTR< std::map<std::string, std::vector<float> > const> const& w) {
+    if (m_feature_weights) return false;
+#ifdef WITH_THREADS
+    boost::unique_lock<boost::shared_mutex> lock(m_lock);
+#endif
+    // may have changed while we waited for the lock
+    if (m_feature_weights) return false;
+    m_feature_weights = w;
     return true;
   }
 };
