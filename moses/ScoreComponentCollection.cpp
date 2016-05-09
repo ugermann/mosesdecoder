@@ -84,14 +84,17 @@ float
 ScoreComponentCollection::
 GetWeightedScore() const
 {
-  UTIL_THROW_IF2(m_scores.coreSize() != StaticData::Instance().GetAllWeights().m_scores.coreSize(), m_scores.coreSize() << " != " << StaticData::Instance().GetAllWeights().m_scores.coreSize());
-  return m_scores.inner_product(StaticData::Instance().GetAllWeights().m_scores);
+  UTIL_THROW2("ScoreComponentCollection::GetWeightedScore() is no longer supported. Pass weights to GetWeightedScore(weights)");
+  return 0.0;
+  //UTIL_THROW_IF2(m_scores.coreSize() != StaticData::Instance().GetAllWeights().m_scores.coreSize(), m_scores.coreSize() << " != " << StaticData::Instance().GetAllWeights().m_scores.coreSize());
+  //return m_scores.inner_product(StaticData::Instance().GetAllWeights().m_scores);
 }
 
 float
 ScoreComponentCollection::
 GetWeightedScore(const ScoreComponentCollection& weights) const
 {
+  UTIL_THROW_IF2(m_scores.coreSize() != weights.m_scores.coreSize(), m_scores.coreSize() << " != " << weights.m_scores.coreSize());
   return m_scores.inner_product(weights.m_scores);
 }
 
