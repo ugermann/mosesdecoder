@@ -21,7 +21,9 @@
 #include "TypeDef.h"
 #include "Util.h"
 
-#include "moses/StaticData.h"
+#include "StaticData.h"
+#include "ScoreComponentCollection.h"
+#include "FF/FeatureFunction.h"
 
 namespace Moses
 {
@@ -40,6 +42,7 @@ protected:
   SPTR< std::map<std::string,float> const> m_context_weights;
   SPTR< std::map<std::string,float> const> m_lm_interpolation_weights;
   SPTR< std::map<std::string, std::vector<float> > const> m_feature_weights;
+  ScoreComponentCollection m_feature_weights_scc;
 public:
   typedef boost::shared_ptr<ContextScope> ptr;
   template<typename T>
@@ -80,7 +83,9 @@ public:
     return ret;
   }
 
-  ContextScope() {}
+  ContextScope() {
+    m_feature_weights_scc = StaticData::Instance().GetAllWeights();
+  }
 
   ContextScope(ContextScope const& other) {
 #ifdef WITH_THREADS
@@ -174,12 +179,27 @@ public:
     // may have changed while we waited for the lock
     if (m_feature_weights) return false;
     m_feature_weights = w;
+
+    // note the locked state of affairs when replacing SetFeatureWeights()
+    SetFeatureWeightsScc(*m_feature_weights);
+
     return true;
   }
 
   const ScoreComponentCollection& GetFeatureWeights() const {
-    // TODO: implement me properly - set an SCC class attribute in SetFeatureWeights()
-    return StaticData::Instance().GetAllWeights();
+    return m_feature_weights_scc;
+  }
+
+private:
+  void SetFeatureWeightsScc(const std::map<std::string, std::vector<float> >& weights) {
+    std::vector<FeatureFunction*>::const_iterator ff;
+    const std::vector<FeatureFunction*>& ffs = FeatureFunction::GetFeatureFunctions();
+    for(ff = ffs.begin(); ff != ffs.end(); ++ff) {
+      const std::string &featureName = (*ff)->GetScoreProducerDescription();
+      std::map<std::string, std::vector<float> >::const_iterator entry = weights.find(featureName);
+      UTIL_THROW_IF2(entry == weights.end(), "ContextScope::SetFeatureWeights(): missing a feature weight for " << featureName);
+      m_feature_weights_scc.Assign(*ff, entry->second);
+    }
   }
 };
 
