@@ -103,10 +103,10 @@ public:
   CreateWeightMap(std::string const& spec) {
    std::map<std::string,float>* M = new std::map<std::string,float>;
    
-   std::vector<std::string> tokens = Tokenize(spec,":");
+   std::vector<std::string> tokens = Tokenize(spec,",");
    for (std::vector<std::string>::iterator it = tokens.begin();
         it != tokens.end(); it++) {
-     std::vector<std::string> key_and_value = Tokenize(*it, ",");
+     std::vector<std::string> key_and_value = Tokenize(*it, ":");
      (*M)[key_and_value[0]] = atof(key_and_value[1].c_str());
    }
    return M;
