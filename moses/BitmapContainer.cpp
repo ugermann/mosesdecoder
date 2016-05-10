@@ -57,18 +57,18 @@ private:
 
 public:
   HypothesisScoreOrdererWithDistortion(const Range* transOptRange,
+                                       const ScoreComponentCollection& featureWeights,
                                        const bool deterministic = false)
     : m_deterministic(deterministic)
     , m_transOptRange(transOptRange) {
     m_totalWeightDistortion = 0;
-    const StaticData &staticData = StaticData::Instance();
 
     const std::vector<const DistortionScoreProducer*> &ffs = DistortionScoreProducer::GetDistortionFeatureFunctions();
     std::vector<const DistortionScoreProducer*>::const_iterator iter;
     for (iter = ffs.begin(); iter != ffs.end(); ++iter) {
       const DistortionScoreProducer *ff = *iter;
 
-      float weight =staticData.GetAllWeights().GetScoreForProducer(ff);
+      float weight =featureWeights.GetScoreForProducer(ff);
       m_totalWeightDistortion += weight;
     }
   }
@@ -191,7 +191,8 @@ BackwardsEdge::BackwardsEdge(const BitmapContainer &prevBitmapContainer
                    << m_hypotheses[1]->GetFutureScore());
   }
 
-  HypothesisScoreOrdererWithDistortion orderer (&transOptRange, m_deterministic);
+  const ScoreComponentCollection &featureWeights = m_parent.GetStack().GetManager().GetTtask()->GetScope()->GetFeatureWeights();
+  HypothesisScoreOrdererWithDistortion orderer (&transOptRange, featureWeights, m_deterministic);
   std::sort(m_hypotheses.begin(), m_hypotheses.end(), orderer);
 
   // std::sort(m_hypotheses.begin(), m_hypotheses.end(), HypothesisScoreOrdererNoDistortion());
