@@ -118,7 +118,7 @@ PDTAimp::GetTargetPhraseCollection(Phrase const &src) const
   // convert into TargetPhrases
   std::string fd = m_obj->options()->output.factor_delimiter;
   for(size_t i=0; i<cands.size(); ++i) {
-    TargetPhrase targetPhrase(m_obj);
+    TargetPhrase targetPhrase(m_ttask, m_obj);
 
     StringTgtCand::Tokens const& factorStrings=cands[i].tokens;
     Scores const& probVector=cands[i].scores;
@@ -159,6 +159,7 @@ void PDTAimp::Create(const std::vector<FactorType> &input
                      , const std::vector<FactorType> &output
                      , const std::string &filePath
                      , const std::vector<float> &weight
+                     , const ttasksptr &ttask
                     )
 {
 
@@ -166,6 +167,7 @@ void PDTAimp::Create(const std::vector<FactorType> &input
   m_dict=new PhraseDictionaryTree();
   m_input=input;
   m_output=output;
+  m_ttask=ttask;
 
   const StaticData &staticData = StaticData::Instance();
   m_dict->NeedAlignmentInfo(staticData.NeedAlignmentInfo());
@@ -374,7 +376,7 @@ void PDTAimp::CacheSource(ConfusionNet const& src)
 
     for(E2Costs::const_iterator j=i->second.begin(); j!=i->second.end(); ++j) {
       TScores const & scores=j->second;
-      TargetPhrase targetPhrase(m_obj);
+      TargetPhrase targetPhrase(m_ttask, m_obj);
       CreateTargetPhrase(targetPhrase
                          , j ->first
                          , m_obj->options()->output.factor_delimiter

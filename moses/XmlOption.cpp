@@ -198,6 +198,8 @@ ProcessAndStripXMLTags(AllOptions const& opts, string &line,
 
   const vector<FactorType> &outputFactorOrder = opts.output.factor_order;
 
+  ttasksptr null_ttask;
+
   // loop through the tokens
   for (size_t xmlTokenPos = 0 ; xmlTokenPos < xmlTokens.size() ; xmlTokenPos++) {
     // not a xml tag, but regular text (may contain many words)
@@ -355,6 +357,7 @@ ProcessAndStripXMLTags(AllOptions const& opts, string &line,
 #endif
         }
 
+        // TODO: this should be revisited now that we have weights in ContextScope.
         // weight-overwrite: update feature weights, unspecified weights remain unchanged
         // IMPORTANT: translation models that cache phrases or apply table-limit during load
         // based on initial weights need to be reset.  Sending an empty update will do this
@@ -455,7 +458,7 @@ ProcessAndStripXMLTags(AllOptions const& opts, string &line,
               float scoreValue = FloorScore(TransformScore(probValue));
 
               Range range(startPos + offset,endPos-1 + offset); // span covered by phrase
-              TargetPhrase targetPhrase(firstPt);
+              TargetPhrase targetPhrase(null_ttask, firstPt); // TODO: XML-created TargetPhrase will not be able to score itself properly since it's lacking ContextScope
               // targetPhrase.CreateFromString(Output, outputFactorOrder,altTexts[i],factorDelimiter, NULL);
               targetPhrase.CreateFromString(Output, outputFactorOrder,altTexts[i], NULL);
 

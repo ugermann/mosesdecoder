@@ -26,6 +26,7 @@
 #include "moses/InputFileStream.h"
 #include "moses/StaticData.h"
 #include "moses/TargetPhrase.h"
+#include "moses/TranslationTask.h"
 
 using namespace std;
 
@@ -148,7 +149,13 @@ void PhraseDictionaryDynamicCacheBased::SetParameter(const std::string& key, con
 
 void PhraseDictionaryDynamicCacheBased::InitializeForInput(ttasksptr const& ttask)
 {
+  m_ttask.reset(new ttasksptr(ttask));
   ReduceCache();
+}
+
+void PhraseDictionaryDynamicCacheBased::CleanUpAfterSentenceProcessing(const InputType& source)
+{
+  m_ttask.reset(NULL);
 }
 
 TargetPhraseCollection::shared_ptr PhraseDictionaryDynamicCacheBased::GetTargetPhraseCollection(const Phrase &source) const
@@ -161,9 +168,10 @@ TargetPhraseCollection::shared_ptr PhraseDictionaryDynamicCacheBased::GetTargetP
   if(it != m_cacheTM.end()) {
     tpc.reset(new TargetPhraseCollection(*(it->second).first));
 
-    std::vector<const TargetPhrase*>::const_iterator it2 = tpc->begin();
+    std::vector<const TargetPhrase*>::iterator it2 = tpc->begin();
 
     while (it2 != tpc->end()) {
+      ((TargetPhrase*) *it2)->SetScope(m_ttask.get()->get()->GetScope());
       ((TargetPhrase*) *it2)->EvaluateInIsolation(source, GetFeaturesToApply());
       it2++;
     }
@@ -516,7 +524,7 @@ void PhraseDictionaryDynamicCacheBased::Update(std::string sourcePhraseString, s
   VERBOSE(3,"PhraseDictionaryDynamicCacheBased::Update(std::string sourcePhraseString, std::string targetPhraseString, std::string ageString, std::string waString)" << std::endl);
   const StaticData &staticData = StaticData::Instance();
   Phrase sourcePhrase(0);
-  TargetPhrase targetPhrase(0);
+  TargetPhrase targetPhrase(*m_ttask, 0);
 
   VERBOSE(3, "ageString:|" << ageString << "|" << std::endl);
   char *err_ind_temp;

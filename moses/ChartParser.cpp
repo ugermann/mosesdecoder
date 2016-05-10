@@ -105,7 +105,7 @@ Process(const Word &sourceWord, const Range &range, ChartParserCallback &to)
       UTIL_THROW_IF2(targetLHS->GetFactor(0) == NULL, "Null factor for target LHS");
 
       // add to dictionary
-      TargetPhrase *targetPhrase = new TargetPhrase(firstPt);
+      TargetPhrase *targetPhrase = new TargetPhrase(ttasksptr(m_ttask), firstPt);
       Word &targetWord = targetPhrase->AddWord();
       targetWord.CreateUnknownWord(sourceWord);
 
@@ -132,7 +132,7 @@ Process(const Word &sourceWord, const Range &range, ChartParserCallback &to)
     // drop source word. create blank trans opt
     float unknownScore = FloorScore(-numeric_limits<float>::infinity());
 
-    TargetPhrase *targetPhrase = new TargetPhrase(firstPt);
+    TargetPhrase *targetPhrase = new TargetPhrase(ttasksptr(m_ttask), firstPt);
     // loop
     const UnknownLHSList &lhsList = options()->syntax.unknown_lhs;//staticData.GetUnknownLHS();
     UnknownLHSList::const_iterator iterLHS;
@@ -240,7 +240,7 @@ void ChartParser::CreateInputPaths(const InputType &input)
                  "Input must be a sentence or a tree, " <<
                  "not lattice or confusion networks");
 
-  TranslationTask const* ttask = m_ttask.lock().get();
+  ttasksptr ttask = m_ttask.lock();
   for (size_t phaseSize = 1; phaseSize <= size; ++phaseSize) {
     for (size_t startPos = 0; startPos < size - phaseSize + 1; ++startPos) {
       size_t endPos = startPos + phaseSize -1;

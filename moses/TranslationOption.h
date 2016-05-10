@@ -88,7 +88,7 @@ public:
   };
 
 
-  explicit TranslationOption(); // For initial hypo that does translate nothing
+  explicit TranslationOption(const ttasksptr &ttask); // For initial hypo that does translate nothing
 
   /** constructor. Used by initial translation step */
   TranslationOption(const Range &range

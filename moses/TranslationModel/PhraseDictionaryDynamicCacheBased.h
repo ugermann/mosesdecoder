@@ -129,6 +129,7 @@ public:
   void SetParameter(const std::string& key, const std::string& value);
 
   void InitializeForInput(ttasksptr const& ttask);
+  void CleanUpAfterSentenceProcessing(const InputType& source);
 
   //  virtual void InitializeForInput(InputType const&) {
   //    /* Don't do anything source specific here as this object is shared between threads.*/
@@ -177,6 +178,9 @@ protected:
   void Load_Single_File(const std::string file);
 
   TargetPhrase *CreateTargetPhrase(const Phrase &sourcePhrase) const;
+
+private:
+  boost::thread_specific_ptr<ttasksptr> m_ttask;
 };
 
 }  // namespace Moses

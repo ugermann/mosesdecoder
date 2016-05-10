@@ -41,7 +41,7 @@ public:
 
 public:
   // ttaskwptr const ttask;
-  TranslationTask const* ttask;
+  boost::shared_ptr<TranslationTask> ttask;
 protected:
   const InputPath *m_prevPath;
   Phrase m_phrase;
@@ -66,7 +66,7 @@ public:
     , m_nextNode(NOT_FOUND) {
   }
 
-  InputPath(TranslationTask const* ttask, // ttaskwptr const ttask,
+  InputPath(ttasksptr const& ttask, // ttaskwptr const ttask,
             Phrase const& phrase,
             NonTerminalSet const& sourceNonTerms,
             Range const& range,

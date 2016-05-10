@@ -10,10 +10,6 @@
 #include "moses/ChartManager.h"
 #include "moses/ContextScope.h"
 
-#include "moses/Syntax/F2S/Manager.h"
-#include "moses/Syntax/S2T/Manager.h"
-#include "moses/Syntax/T2S/Manager.h"
-
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/make_shared.hpp>

@@ -32,32 +32,17 @@
 #include "AlignmentInfoCollection.h"
 #include "InputPath.h"
 #include "TranslationTask.h"
-#include "moses/TranslationModel/PhraseDictionary.h"
-#include "moses/PP/Factory.h"
+#include "TranslationModel/PhraseDictionary.h"
+#include "PP/Factory.h"
+#include "ContextScope.h"
 #include <boost/foreach.hpp>
 
 using namespace std;
 
 namespace Moses
 {
-TargetPhrase::TargetPhrase( std::string out_string, const PhraseDictionary *pt)
-  :Phrase(0)
-  , m_futureScore(0.0)
-  , m_estimatedScore(0.0)
-  , m_alignTerm(&AlignmentInfoCollection::Instance().GetEmptyAlignmentInfo())
-  , m_alignNonTerm(&AlignmentInfoCollection::Instance().GetEmptyAlignmentInfo())
-  , m_lhsTarget(NULL)
-  , m_ruleSource(NULL)
-  , m_container(pt)
-{
-  //ACAT
-  const StaticData &staticData = StaticData::Instance();
-  // XXX should this really be InputFactorOrder???
-  CreateFromString(Output, staticData.options()->input.factor_order, out_string,
-                   NULL);
-}
 
-TargetPhrase::TargetPhrase(ttasksptr& ttask, std::string out_string, const PhraseDictionary *pt)
+TargetPhrase::TargetPhrase(const ttasksptr& ttask, std::string out_string, const PhraseDictionary *pt)
   :Phrase(0)
   , m_futureScore(0.0)
   , m_estimatedScore(0.0)
@@ -74,7 +59,7 @@ TargetPhrase::TargetPhrase(ttasksptr& ttask, std::string out_string, const Phras
                    NULL);
 }
 
-TargetPhrase::TargetPhrase(ttasksptr& ttask, const PhraseDictionary *pt)
+TargetPhrase::TargetPhrase(const ttasksptr& ttask, const PhraseDictionary *pt)
   : Phrase()
   , m_futureScore(0.0)
   , m_estimatedScore(0.0)
@@ -87,7 +72,7 @@ TargetPhrase::TargetPhrase(ttasksptr& ttask, const PhraseDictionary *pt)
   if (ttask) m_scope = ttask->GetScope();
 }
 
-TargetPhrase::TargetPhrase(ttasksptr& ttask, const Phrase &phrase, const PhraseDictionary *pt)
+TargetPhrase::TargetPhrase(const ttasksptr& ttask, const Phrase &phrase, const PhraseDictionary *pt)
   : Phrase(phrase)
   , m_futureScore(0.0)
   , m_estimatedScore(0.0)
@@ -98,30 +83,6 @@ TargetPhrase::TargetPhrase(ttasksptr& ttask, const Phrase &phrase, const PhraseD
   , m_container(pt)
 {
   if (ttask) m_scope = ttask->GetScope();
-}
-
-TargetPhrase::TargetPhrase(const PhraseDictionary *pt)
-  :Phrase()
-  , m_futureScore(0.0)
-  , m_estimatedScore(0.0)
-  , m_alignTerm(&AlignmentInfoCollection::Instance().GetEmptyAlignmentInfo())
-  , m_alignNonTerm(&AlignmentInfoCollection::Instance().GetEmptyAlignmentInfo())
-  , m_lhsTarget(NULL)
-  , m_ruleSource(NULL)
-  , m_container(pt)
-{
-}
-
-TargetPhrase::TargetPhrase(const Phrase &phrase, const PhraseDictionary *pt)
-  : Phrase(phrase)
-  , m_futureScore(0.0)
-  , m_estimatedScore(0.0)
-  , m_alignTerm(&AlignmentInfoCollection::Instance().GetEmptyAlignmentInfo())
-  , m_alignNonTerm(&AlignmentInfoCollection::Instance().GetEmptyAlignmentInfo())
-  , m_lhsTarget(NULL)
-  , m_ruleSource(NULL)
-  , m_container(pt)
-{
 }
 
 TargetPhrase::TargetPhrase(const TargetPhrase &copy)
@@ -176,6 +137,11 @@ SPTR<ContextScope> TargetPhrase::GetScope() const
   return m_scope.lock();
 }
 
+void TargetPhrase::SetScope(const SPTR<ContextScope> &scope)
+{
+  m_scope = scope;
+}
+
 void TargetPhrase::EvaluateInIsolation(const Phrase &source)
 {
   const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
@@ -184,6 +150,9 @@ void TargetPhrase::EvaluateInIsolation(const Phrase &source)
 
 void TargetPhrase::EvaluateInIsolation(const Phrase &source, const std::vector<FeatureFunction*> &ffs)
 {
+  UTIL_THROW_IF2(m_scope.lock() == NULL, "TargetPhrase::EvaluateInIsolation() must now have a ContextScope for feature weights.");
+  const ScoreComponentCollection &weights = m_scope.lock()->GetFeatureWeights();
+
   if (ffs.size()) {
     const StaticData &staticData = StaticData::Instance();
     ScoreComponentCollection estimatedScores;
@@ -194,14 +163,18 @@ void TargetPhrase::EvaluateInIsolation(const Phrase &source, const std::vector<F
       }
     }
 
-    float weightedScore = m_scoreBreakdown.GetWeightedScore();
-    m_estimatedScore += estimatedScores.GetWeightedScore();
+    float weightedScore = m_scoreBreakdown.GetWeightedScore(weights);
+    m_estimatedScore += estimatedScores.GetWeightedScore(weights);
     m_futureScore = weightedScore + m_estimatedScore;
   }
 }
 
 void TargetPhrase::EvaluateWithSourceContext(const InputType &input, const InputPath &inputPath)
 {
+  boost::shared_ptr<ContextScope> scope = m_scope.lock();
+  UTIL_THROW_IF2(scope.get() == NULL, "TargetPhrase::EvaluateWithSourceContext() must now have a ContextScope for feature weights.");
+  const ScoreComponentCollection &weights = scope->GetFeatureWeights();
+
   const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
   const StaticData &staticData = StaticData::Instance();
   ScoreComponentCollection futureScoreBreakdown;
@@ -211,16 +184,20 @@ void TargetPhrase::EvaluateWithSourceContext(const InputType &input, const Input
       ff.EvaluateWithSourceContext(input, inputPath, *this, NULL, m_scoreBreakdown, &futureScoreBreakdown);
     }
   }
-  float weightedScore = m_scoreBreakdown.GetWeightedScore();
-  m_estimatedScore += futureScoreBreakdown.GetWeightedScore();
+  float weightedScore = m_scoreBreakdown.GetWeightedScore(weights);
+  m_estimatedScore += futureScoreBreakdown.GetWeightedScore(weights);
   m_futureScore = weightedScore + m_estimatedScore;
 }
 
 void TargetPhrase::UpdateScore(ScoreComponentCollection* futureScoreBreakdown)
 {
-  float weightedScore = m_scoreBreakdown.GetWeightedScore();
+  boost::shared_ptr<ContextScope> scope = m_scope.lock();
+  UTIL_THROW_IF2(scope.get() == NULL, "TargetPhrase::EvaluateWithSourceContext() must now have a ContextScope for feature weights.");
+  const ScoreComponentCollection &weights = scope->GetFeatureWeights();
+
+  float weightedScore = m_scoreBreakdown.GetWeightedScore(weights);
   if(futureScoreBreakdown)
-    m_estimatedScore += futureScoreBreakdown->GetWeightedScore();
+    m_estimatedScore += futureScoreBreakdown->GetWeightedScore(weights);
   m_futureScore = weightedScore + m_estimatedScore;
 }
 

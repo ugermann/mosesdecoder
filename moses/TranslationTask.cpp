@@ -11,6 +11,10 @@
 #include "moses/Incremental.h"
 #include "mbr.h"
 
+#include "moses/Syntax/F2S/Manager.h"
+#include "moses/Syntax/S2T/Manager.h"
+#include "moses/Syntax/T2S/Manager.h"
+
 #include "moses/Syntax/F2S/RuleMatcherCallback.h"
 #include "moses/Syntax/F2S/RuleMatcherHyperTree.h"
 #include "moses/Syntax/S2T/Parsers/RecursiveCYKPlusParser/RecursiveCYKPlusParser.h"

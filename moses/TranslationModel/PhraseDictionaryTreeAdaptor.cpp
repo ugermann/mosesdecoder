@@ -59,7 +59,7 @@ void PhraseDictionaryTreeAdaptor::InitializeForInput(ttasksptr const& ttask)
                 << " " << m_numScoreComponents);
   }
 
-  obj->Create(m_input, m_output, m_filePath, weight);
+  obj->Create(m_input, m_output, m_filePath, weight, ttask);
 
   obj->CleanUp();
   // caching only required for confusion net
