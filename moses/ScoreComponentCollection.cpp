@@ -80,6 +80,23 @@ RegisterScoreProducer(FeatureFunction* scoreProducer)
 }
 
 
+ScoreComponentCollection
+ScoreComponentCollection::
+FromWeightMap(const std::map<std::string, std::vector<float> >& weights)
+{
+  ScoreComponentCollection scc;
+  std::vector<FeatureFunction*>::const_iterator ff;
+  const std::vector<FeatureFunction*>& ffs = FeatureFunction::GetFeatureFunctions();
+  for(ff = ffs.begin(); ff != ffs.end(); ++ff) {
+    const std::string &featureName = (*ff)->GetScoreProducerDescription();
+    std::map<std::string, std::vector<float> >::const_iterator entry = weights.find(featureName);
+    UTIL_THROW_IF2(entry == weights.end(), "ScoreComponentCollection::FromWeightMap(): missing a feature weight for " << featureName);
+    scc.Assign(*ff, entry->second);
+  }
+  return scc;
+}
+
+
 float
 ScoreComponentCollection::
 GetWeightedScore() const

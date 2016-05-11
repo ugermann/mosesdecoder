@@ -180,26 +180,13 @@ public:
     if (m_feature_weights) return false;
     m_feature_weights = w;
 
-    // note the locked state of affairs when replacing SetFeatureWeights()
-    SetFeatureWeightsScc(*m_feature_weights);
+    m_feature_weights_scc = ScoreComponentCollection::FromWeightMap(*m_feature_weights);
 
     return true;
   }
 
   const ScoreComponentCollection& GetFeatureWeights() const {
     return m_feature_weights_scc;
-  }
-
-private:
-  void SetFeatureWeightsScc(const std::map<std::string, std::vector<float> >& weights) {
-    std::vector<FeatureFunction*>::const_iterator ff;
-    const std::vector<FeatureFunction*>& ffs = FeatureFunction::GetFeatureFunctions();
-    for(ff = ffs.begin(); ff != ffs.end(); ++ff) {
-      const std::string &featureName = (*ff)->GetScoreProducerDescription();
-      std::map<std::string, std::vector<float> >::const_iterator entry = weights.find(featureName);
-      UTIL_THROW_IF2(entry == weights.end(), "ContextScope::SetFeatureWeights(): missing a feature weight for " << featureName);
-      m_feature_weights_scc.Assign(*ff, entry->second);
-    }
   }
 };
 

@@ -212,7 +212,14 @@ public:
     return copy;
   }
 
+  /**
+   * Change feature weights.
+   */
   void SetAllWeights(const ScoreComponentCollection& weights) {
+    /*
+     * Before decoding each sentence, ContextScope() retrieves the current feature weights from StaticData.
+     * Therefore, we can safely lock and change the weights here, which affects all subsequent sentences.
+     */
     boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
     m_allWeights = weights;
   }

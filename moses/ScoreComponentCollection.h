@@ -148,6 +148,8 @@ public:
     return m_scores.load(filename);
   }
 
+  static ScoreComponentCollection FromWeightMap(const std::map<std::string, std::vector<float> >& weights);
+
   const FVector& GetScoresVector() const {
     return m_scores;
   }
