@@ -239,6 +239,7 @@ bool StaticData::LoadData(Parameter *parameter)
 
 void StaticData::SetWeight(const FeatureFunction* sp, float weight)
 {
+  boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
   m_allWeights.Resize();
   m_allWeights.Assign(sp,weight);
 }
@@ -246,6 +247,7 @@ void StaticData::SetWeight(const FeatureFunction* sp, float weight)
 void StaticData::SetWeights(const FeatureFunction* sp,
                             const std::vector<float>& weights)
 {
+  boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
   m_allWeights.Resize();
   m_allWeights.Assign(sp,weights);
 }

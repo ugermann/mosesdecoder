@@ -33,10 +33,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <fstream>
 #include <string>
 
-#ifdef WITH_THREADS
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
-#endif
+#include <boost/thread/locks.hpp>
 
 #include "Parameter.h"
 #include "SentenceStats.h"
@@ -76,6 +75,7 @@ protected:
   boost::shared_ptr<AllOptions> m_options;
 
   ScoreComponentCollection m_allWeights;
+  mutable boost::mutex m_allWeightsMutex;
 
   std::vector<DecodeGraph*> m_decodeGraphs;
 
@@ -199,17 +199,27 @@ public:
     m_verboseLevel = x;
   }
 
-  const ScoreComponentCollection&
+  /**
+   * Get feature weights.
+   *
+   * This is slow / locking on purpose.
+   * You should call ContextScope::GetFeatureWeights() instead!
+   */
+  ScoreComponentCollection
   GetAllWeights() const {
-    return m_allWeights;
+    boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
+    ScoreComponentCollection copy = m_allWeights;
+    return copy;
   }
 
   void SetAllWeights(const ScoreComponentCollection& weights) {
+    boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
     m_allWeights = weights;
   }
 
-  //Weight for a single-valued feature
+  //! DEPRECATED. Use ContextScope::GetFeatureWeights(). Weight for a single-valued feature
   float GetWeight(const FeatureFunction* sp) const {
+    boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
     return m_allWeights.GetScoreForProducer(sp);
   }
 
@@ -217,8 +227,9 @@ public:
   void SetWeight(const FeatureFunction* sp, float weight) ;
 
 
-  //Weights for feature with fixed number of values
+  //! DEPRECATED. Use ContextScope::GetFeatureWeights(). Weights for feature with fixed number of values
   std::vector<float> GetWeights(const FeatureFunction* sp) const {
+    boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
     return m_allWeights.GetScoresForProducer(sp);
   }
 
