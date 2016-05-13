@@ -96,7 +96,7 @@ FromWeightMap(const std::map<std::string, std::vector<float> >& weights)
     }
     const std::string &featureName = (*ff)->GetScoreProducerDescription();
     std::map<std::string, std::vector<float> >::const_iterator entry = weights.find(featureName);
-    UTIL_THROW_IF2(entry == weights.end(), "ScoreComponentCollection::FromWeightMap(): missing a feature weight for " << featureName);
+    UTIL_THROW_IF2(entry == weights.end(), "ScoreComponentCollection::FromWeightMap(): missing feature weight(s) for " << featureName);
     scc.Assign(*ff, entry->second);
   }
   return scc;
