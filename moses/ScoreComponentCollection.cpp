@@ -88,6 +88,12 @@ FromWeightMap(const std::map<std::string, std::vector<float> >& weights)
   std::vector<FeatureFunction*>::const_iterator ff;
   const std::vector<FeatureFunction*>& ffs = FeatureFunction::GetFeatureFunctions();
   for(ff = ffs.begin(); ff != ffs.end(); ++ff) {
+    if((*ff)->GetNumScoreComponents() == 0)
+      continue;
+    if(!(*ff)->IsTuneable()) {
+      scc.Assign(*ff, (*ff)->DefaultWeights());
+      continue;
+    }
     const std::string &featureName = (*ff)->GetScoreProducerDescription();
     std::map<std::string, std::vector<float> >::const_iterator entry = weights.find(featureName);
     UTIL_THROW_IF2(entry == weights.end(), "ScoreComponentCollection::FromWeightMap(): missing a feature weight for " << featureName);
