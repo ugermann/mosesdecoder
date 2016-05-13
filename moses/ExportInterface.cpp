@@ -187,7 +187,7 @@ batch_run()
                  << " [" << HERE << "]");
 
   // check on weights
-  ScoreComponentCollection weights = staticData.GetAllWeights();
+  ScoreComponentCollection weights = staticData.GetAllWeightsNew();
   IFVERBOSE(2) {
     TRACE_ERR("The global weight vector looks like this: ");
     TRACE_ERR(weights);

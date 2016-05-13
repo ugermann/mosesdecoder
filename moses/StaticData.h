@@ -206,10 +206,15 @@ public:
    * You should call ContextScope::GetFeatureWeights() instead!
    */
   ScoreComponentCollection
-  GetAllWeights() const {
+  GetAllWeightsNew() const { // temporarily called GetAllWeightsNew() so we are aware of all call sites used in MMT.
     boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
     ScoreComponentCollection copy = m_allWeights;
     return copy;
+  }
+
+  ScoreComponentCollection GetAllWeights() const {
+    UTIL_THROW2("StaticData::GetAllWeights() should not be called anymore inside MMT - use GetAllWeightsNew() for now.");
+    return ScoreComponentCollection();
   }
 
   /**

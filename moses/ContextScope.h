@@ -84,7 +84,7 @@ public:
   }
 
   ContextScope() {
-    m_feature_weights_scc = StaticData::Instance().GetAllWeights();
+    m_feature_weights_scc = StaticData::Instance().GetAllWeightsNew();
   }
 
   ContextScope(ContextScope const& other) {
