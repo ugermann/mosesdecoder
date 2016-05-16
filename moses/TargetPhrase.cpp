@@ -52,7 +52,8 @@ TargetPhrase::TargetPhrase(const ttasksptr& ttask, std::string out_string, const
   , m_ruleSource(NULL)
   , m_container(pt)
 {
-  if (ttask) m_scope = ttask->GetScope();
+  UTIL_THROW_IF2(ttask.get() == NULL, "TargetPhrase cannot be constructed without a ContextScope any more");
+  m_scope = ttask->GetScope();
 
   // XXX should this really be InputFactorOrder???
   CreateFromString(Output, ttask->options()->input.factor_order, out_string,
@@ -69,7 +70,8 @@ TargetPhrase::TargetPhrase(const ttasksptr& ttask, const PhraseDictionary *pt)
   , m_ruleSource(NULL)
   , m_container(pt)
 {
-  if (ttask) m_scope = ttask->GetScope();
+  UTIL_THROW_IF2(ttask.get() == NULL, "TargetPhrase cannot be constructed without a ContextScope any more");
+  m_scope = ttask->GetScope();
 }
 
 TargetPhrase::TargetPhrase(const ttasksptr& ttask, const Phrase &phrase, const PhraseDictionary *pt)
@@ -82,7 +84,8 @@ TargetPhrase::TargetPhrase(const ttasksptr& ttask, const Phrase &phrase, const P
   , m_ruleSource(NULL)
   , m_container(pt)
 {
-  if (ttask) m_scope = ttask->GetScope();
+  UTIL_THROW_IF2(ttask.get() == NULL, "TargetPhrase cannot be constructed without a ContextScope any more");
+  m_scope = ttask->GetScope();
 }
 
 TargetPhrase::TargetPhrase(const TargetPhrase &copy)
