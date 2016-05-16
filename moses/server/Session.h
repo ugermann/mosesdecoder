@@ -23,7 +23,6 @@ namespace MosesServer{
     
     Session(uint64_t const session_id) 
       : id(session_id)
-      , scope(new Moses::ContextScope) 
     { 
       last_access = start_time = time(NULL); 
     }
