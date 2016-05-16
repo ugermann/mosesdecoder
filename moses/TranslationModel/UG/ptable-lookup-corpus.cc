@@ -32,7 +32,7 @@ int main(int argc, char const* argv[])
 
   string context_weight_spec;
   params.SetParameter(context_weight_spec,"context-weights",string(""));
-  boost::shared_ptr<ContextScope> scope(new ContextScope);
+  boost::shared_ptr<ContextScope> scope(new ContextScope(StaticData::Instance().GetAllWeightsNew()));
   boost::shared_ptr<IOWrapper> none;
   if (context_weight_spec.size())
     scope->SetContextWeights(context_weight_spec);

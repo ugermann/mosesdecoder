@@ -69,7 +69,7 @@ int main(int argc, char const* argv[])
 
   // global scope of caches, biases, etc., if any
   boost::shared_ptr<ContextScope> gscope;
-  gscope.reset(new ContextScope);
+  gscope.reset(new ContextScope(StaticData::Instance().GetAllWeightsNew()));
 
   // ... or weights for documents/domains from config file / cmd. line
   std::string context_weights;

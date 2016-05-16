@@ -227,7 +227,7 @@ batch_run()
   // global scope of caches, biases, etc., if any
   boost::shared_ptr<ContextScope> gscope;
   if (!use_sliding_context_window)
-    gscope.reset(new ContextScope);
+    gscope.reset(new ContextScope(StaticData::Instance().GetAllWeightsNew()));
 
   // main loop over set of input sentences
   boost::shared_ptr<InputType> source;
@@ -237,7 +237,7 @@ batch_run()
     // set up task of translating one sentence
     boost::shared_ptr<ContextScope>  lscope;
     if (gscope) lscope = gscope;
-    else lscope.reset(new ContextScope);
+    else lscope.reset(new ContextScope(StaticData::Instance().GetAllWeightsNew()));
 
     boost::shared_ptr<TranslationTask> task;
     task = TranslationTask::create(source, ioWrapper, lscope);

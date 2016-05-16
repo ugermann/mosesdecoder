@@ -46,7 +46,7 @@ namespace MosesServer{
     operator[](uint32_t id)
     {
       boost::upgrade_lock<boost::shared_mutex> lock(m_lock);
-      if (id > 1) 
+      if (id > 1 || id == 0)
       {
         boost::unordered_map<uint64_t, Session>::iterator m = m_cache.find(id);
         if (m != m_cache.end())
@@ -56,7 +56,8 @@ namespace MosesServer{
         }
       }
       boost::upgrade_to_unique_lock<boost::shared_mutex> xlock(lock);
-      id = ++m_session_counter;
+      if(id != 0)
+        id = ++m_session_counter;
       std::pair<uint64_t, Session> foo(id, Session(id));
       return m_cache.insert(foo).first->second;
     }
@@ -64,7 +65,7 @@ namespace MosesServer{
     Session const&
     at(uint32_t id) {
       boost::upgrade_lock<boost::shared_mutex> lock(m_lock);
-      if (id > 1)
+      if (id > 1 || id == 0)
       {
         boost::unordered_map<uint64_t, Session>::iterator m = m_cache.find(id);
         if (m != m_cache.end())

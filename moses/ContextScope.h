@@ -83,8 +83,13 @@ public:
     return ret;
   }
 
+  ContextScope(const ScoreComponentCollection& featureWeights) {
+    m_feature_weights_scc = featureWeights;
+  }
+
   ContextScope() {
-    m_feature_weights_scc = StaticData::Instance().GetAllWeightsNew();
+    // this constructor should not be used anymore within MMT.
+    m_feature_weights_scc = StaticData::Instance().GetAllWeights();
   }
 
   ContextScope(ContextScope const& other) {

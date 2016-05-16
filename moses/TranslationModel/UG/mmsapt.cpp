@@ -697,7 +697,8 @@ namespace Moses
     // get context-specific cache of items previously looked up
     SPTR<ContextScope> const& scope = ttask->GetScope();
     SPTR<TPCollCache> cache = scope->get<TPCollCache>(cache_key);
-    if (!cache) cache = m_cache; // no context-specific cache, use global one
+    //if (!cache) cache = m_cache; // no context-specific cache, use global one
+    UTIL_THROW_IF2(!cache, "no cache in GetTargetPhraseCollectionLEGACY(): but one should always be set up in InitializeForInput()");
 
     // get phrasekey from the cache, or create a new cache entry.
     ret = cache->get(phrasekey, dyn->revision());
@@ -876,23 +877,19 @@ namespace Moses
     boost::unique_lock<boost::shared_mutex> mylock(m_lock);
     
     SPTR<ContextScope> const& scope = ttask->GetScope();
-    SPTR<TPCollCache> localcache = scope->get<TPCollCache>(cache_key);
+    SPTR<TPCollCache> cache = scope->get<TPCollCache>(cache_key);
     SPTR<ContextForQuery> context = scope->get<ContextForQuery>(btfix.get(), true);
     boost::unique_lock<boost::shared_mutex> ctxlock(context->lock);
 
     // if (localcache) std::cerr << "have local cache " << std::endl;
     // std::cerr << "BOO at " << HERE << std::endl;
-    if (!localcache)
-      {
-        // std::cerr << "no local cache at " << HERE << std::endl;
-        setup_bias(ttask);
-        if (context->bias) 
-          {
-            localcache.reset(new TPCollCache(m_cache_size));
-          }
-        else localcache = m_cache;
-        scope->set<TPCollCache>(cache_key, localcache);
-      }
+    if (!cache)
+    {
+      // std::cerr << "no local cache at " << HERE << std::endl;
+      setup_bias(ttask);
+      cache.reset(new TPCollCache(m_cache_size));
+      scope->set<TPCollCache>(cache_key, cache);
+    }
 
     if (!context->cache1) context->cache1.reset(new pstats::cache_t);
     if (!context->cache2) context->cache2.reset(new pstats::cache_t);
