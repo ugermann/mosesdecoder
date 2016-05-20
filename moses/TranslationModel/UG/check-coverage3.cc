@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
 	      SPTR<SamplingBias const> zilch;
         vector<id_type> sp(snt.begin() + i, snt.begin() + k);
 	      BitextSampler<Token> s(B, sp, /* fwd = */ true, zilch, 1000, 1000,
-				     sapt::random_sampling);
+				     sapt::uniform_sampling);
 	      s();
 	      if (s.stats()->trg.size() == 0) continue;
 	      sapt::pstats::indoc_map_t::const_iterator d

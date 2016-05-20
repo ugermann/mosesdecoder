@@ -30,8 +30,9 @@ typedef std::size_t size_t;  // make CLion happy
 enum 
 sampling_method 
   { 
-    full_coverage, 
-    random_sampling, 
+    full_coverage,
+    uniform_sampling,
+    biased_sampling,
     ranked_sampling, 
     ranked_sampling2,
     ranked_sampling3
@@ -102,7 +103,7 @@ BitextSampler : public Moses::reference_counter
   size_t uniform_collect(size_t samples, const std::vector<id_type>& domains);
 
 
-  size_t perform_random_sampling();
+  size_t perform_random_sampling(SamplingBias const* bias);
   size_t perform_full_phrase_extraction();
 
   int check_sample_distribution(uint64_t const& sid, uint64_t const& offset);

@@ -440,18 +440,18 @@ namespace sapt {
       {
         // std::cerr
         // << "Ranked sampling requested but no bias given " << std::endl;
-        perform_random_sampling();
+        perform_random_sampling(NULL);
       }
     }
     else if (m_method == ranked_sampling2)
       perform_ranked_sampling2();
     else if (m_method == ranked_sampling3)
       perform_ranked_sampling3();
-    else if (m_method == random_sampling)
-    {
-      // std::cerr << "RANDOM SAMPLING " << HERE << std::endl;
-      perform_random_sampling();
-    }
+    else if (m_method == biased_sampling) {
+      UTIL_THROW_IF2(m_bias.get() == NULL, "Requested biased sampling, but we got no bias weights. You can use uniform sampling instead.");
+      perform_random_sampling(m_bias.get());
+    } else if (m_method == uniform_sampling)
+      perform_random_sampling(NULL);
     else UTIL_THROW2("Unsupported sampling method.");
     m_finished = true;
     m_ready.notify_all();
@@ -531,7 +531,7 @@ namespace sapt {
     if (no_maybe_yes > 1)  return true;  // yes
     // ... maybe: flip a coin
     size_t options_total  = std::max(m_stats->raw_cnt, m_ctr);
-    size_t threshold = ((bias && m_bias_total > 0 && m_method != ranked_sampling)
+    size_t threshold = ((bias && m_bias_total > 0)
                         ? round((*bias)[sid]/m_bias_total * options_total * m_samples) // w/ bias
                         : m_samples); // no bias
     return flip_coin(m_stats->raw_cnt, m_ctr, m_stats->good,threshold);
@@ -553,16 +553,15 @@ namespace sapt {
     return m_random_size_t + options_chosen < threshold;
   }
 
-// Uniform sampling
   template<typename Token>
   size_t
   BitextSampler<Token>::
-  perform_random_sampling()
+  perform_random_sampling(SamplingBias const* bias)
   {
     if (m_next == m_stop) return m_ctr;
     m_bias_total = 0;
     sapt::tsa::ArrayEntry I(m_next);
-    if (m_bias)
+    if (bias)
     {
       // Ranked and random sampling use approximate raw count
       // For consistency of results, biased sampling should also use the
@@ -571,7 +570,7 @@ namespace sapt {
       while (I.next < m_stop)
       {
         m_root->readEntry(I.next,I);
-        m_bias_total += (*m_bias)[I.sid];
+        m_bias_total += (*bias)[I.sid];
       }
       I.next = m_next;
     }
@@ -579,11 +578,11 @@ namespace sapt {
     while (m_stats->good < m_samples && I.next < m_stop)
     {
       m_root->readEntry(I.next,I);
-      bool foo = flip_coin(I.sid, I.offset, m_bias.get());
+      bool foo = flip_coin(I.sid, I.offset, bias);
 #if 0
       size_t options_total  = std::max(m_stats->raw_cnt, m_ctr);
-      size_t threshold = ((m_bias && m_bias_total > 0 && m_method != ranked_sampling)
-                          ? round((*m_bias)[I.sid]/m_bias_total * options_total * m_samples) // w/ bias
+      size_t threshold = ((bias && m_bias_total > 0 && m_method != ranked_sampling)
+                          ? round((*bias)[I.sid]/m_bias_total * options_total * m_samples) // w/ bias
                           : m_samples); // no bias
 
       std::cerr << "[" << m_ctr << "/ " << m_stats->raw_cnt << ": " << m_rnd_float << "] "

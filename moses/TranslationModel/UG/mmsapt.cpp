@@ -66,7 +66,7 @@ namespace Moses
 #ifndef NO_MOSES
     , m_lr_func(NULL)
 #endif
-    , m_sampling_method(random_sampling)
+    , m_sampling_method(uniform_sampling)
     , bias_key(((char*)this)+3)
     , cache_key(((char*)this)+2)
     , context_key(((char*)this)+1)
@@ -257,8 +257,10 @@ namespace Moses
 
     if ((m = param.find("method")) != param.end())
       {
-        if (m->second == "random")
-          m_sampling_method = random_sampling;
+        if (m->second == "uniform")
+          m_sampling_method = uniform_sampling;
+        else if (m->second == "biased")
+          m_sampling_method = biased_sampling;
         else if (m->second == "ranked")
           m_sampling_method = ranked_sampling;
         else if (m->second == "ranked2")
