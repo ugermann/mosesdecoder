@@ -18,9 +18,7 @@ namespace MosesServer{
     time_t start_time;
     mutable time_t last_access;
     boost::shared_ptr<Moses::ContextScope> scope; // stores local info
-    SPTR<std::map<std::string,float> > m_context_weights;
 
-    
     Session(uint64_t const session_id) 
       : id(session_id)
     { 
