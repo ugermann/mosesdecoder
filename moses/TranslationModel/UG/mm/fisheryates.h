@@ -32,6 +32,8 @@ namespace map_helper {
 * Generates k random indices from the range [0,n)
 * Efficient for the case k << n (partial Fisher-Yates shuffle).
 *
+* Outputs indices in 'out' in sorted order.
+*
 * Kudos to Nick Johnson: http://stackoverflow.com/a/6978109
 */
 template<class Engine>
@@ -59,7 +61,8 @@ void random_indices(size_t k, size_t n, Engine& randomEngine, std::vector<size_t
     out.push_back(state[i]);
 
   // sort choice, for potential memory access benefits
-  // (for later use in memory access, sequential access may be faster)
+  // * for later use in memory access, sequential access may be faster
+  // * BitextSampler<Token>::uniform_collect() now relies on our output being sorted
   std::sort(out.begin(), out.end());
 }
 
