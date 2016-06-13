@@ -107,7 +107,7 @@ namespace sapt {
     if(needSamples == m_samples) {
       // we should only have been called for existing number of samples.
       // but checking raw1 is better for that, since for low counts, we may end up with all bad samples, and this triggers often.
-      XVERBOSE(3, std::cerr << "  ranked3: '" << bitext.V1->toString(m_phrase) << "' looked up, but no samples found.\n");
+      XVERBOSE(3, "  ranked3: '" << bitext.V1->toString(m_phrase) << "' looked up, but no samples found.\n");
     }
 
     double before_fixup_raw2 = current_time();
