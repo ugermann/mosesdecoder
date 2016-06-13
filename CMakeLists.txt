@@ -17,7 +17,7 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_INSTALL_PREFIX}/bin)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_INSTALL_PREFIX}/lib)
 
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # to build shared libmoses.so with KenLM inside (probably needed for KenLM only)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")

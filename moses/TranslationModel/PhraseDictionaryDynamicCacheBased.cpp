@@ -18,6 +18,9 @@
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  ***********************************************************************/
+
+#include <memory>
+
 #include "util/exception.hh"
 
 #include "moses/TranslationModel/PhraseDictionary.h"
@@ -586,7 +589,7 @@ void PhraseDictionaryDynamicCacheBased::Update(Phrase sp, TargetPhrase tp, int a
     }
     if (!found) {
       VERBOSE(3,"tp:|" << tp << "| NOT FOUND" << std::endl);
-      std::auto_ptr<TargetPhrase> targetPhrase(new TargetPhrase(tp));
+      std::unique_ptr<TargetPhrase> targetPhrase(new TargetPhrase(tp));
 
       targetPhrase->GetScoreBreakdown().Assign(this, GetPreComputedScores(age));
       if (!waString.empty()) targetPhrase->SetAlignmentInfo(waString);
@@ -614,7 +617,7 @@ void PhraseDictionaryDynamicCacheBased::Update(Phrase sp, TargetPhrase tp, int a
     m_cacheTM.insert(make_pair(sp,make_pair(tpc,ac)));
 
     //tp is not found
-    std::auto_ptr<TargetPhrase> targetPhrase(new TargetPhrase(tp));
+    std::unique_ptr<TargetPhrase> targetPhrase(new TargetPhrase(tp));
     targetPhrase->GetScoreBreakdown().Assign(this, GetPreComputedScores(age));
     if (!waString.empty()) targetPhrase->SetAlignmentInfo(waString);
 

@@ -19,6 +19,7 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 ***********************************************************************/
 
+#include <memory>
 #include <limits>
 #include <iostream>
 #include <fstream>
@@ -331,7 +332,7 @@ VERBOSE(1,"int LanguageModelIRST::GetLmID( const Factor *factor ) const version 
 const FFState* LanguageModelIRST::EmptyHypothesisState(const InputType &/*input*/) const
 {
   VERBOSE(3,"const FFState* LanguageModelIRST::EmptyHypothesisState(const InputType &/*input*/)"<< std::endl);
-  std::auto_ptr<IRSTLMState> ret(new IRSTLMState());
+  std::unique_ptr<IRSTLMState> ret(new IRSTLMState());
 
   return ret.release();
 }
@@ -405,7 +406,7 @@ FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FF
 {
   VERBOSE(4,"FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const"<< std::endl);
   if (!hypo.GetCurrTargetLength()) {
-    std::auto_ptr<IRSTLMState> ret(new IRSTLMState(*((IRSTLMState*)ps)));
+    std::unique_ptr<IRSTLMState> ret(new IRSTLMState(*((IRSTLMState*)ps)));
     return ret.release();
   }
 
@@ -495,7 +496,7 @@ FFState* LanguageModelIRST::EvaluateWhenApplied(const Hypothesis &hypo, const FF
   score = TransformLMScore(score);
   out->PlusEquals(this, score);
 
-  std::auto_ptr<IRSTLMState> ret(new IRSTLMState(msidx));
+  std::unique_ptr<IRSTLMState> ret(new IRSTLMState(msidx));
 
   return ret.release();
 }

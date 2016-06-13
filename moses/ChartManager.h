@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include <memory>
 #include <vector>
 #include <boost/unordered_map.hpp>
 #include "ChartCell.h"
@@ -45,7 +46,7 @@ class ChartManager : public BaseManager
 {
 private:
   ChartCellCollection m_hypoStackColl;
-  std::auto_ptr<SentenceStats> m_sentenceStats;
+  std::unique_ptr<SentenceStats> m_sentenceStats;
   clock_t m_start; /**< starting time, used for logging */
   unsigned m_hypothesisId; /* For handing out hypothesis ids to ChartHypothesis */
 
@@ -128,7 +129,7 @@ public:
   }
 
   void ResetSentenceStats(const InputType& source) {
-    m_sentenceStats = std::auto_ptr<SentenceStats>(new SentenceStats(source));
+    m_sentenceStats.reset(new SentenceStats(source));
   }
 
   //! contigious hypo id for each input sentence. For debugging purposes

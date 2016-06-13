@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread.hpp>
 #endif
 
+#include <memory>
 #include <cassert>
 #include <fstream>
 #include <ostream>
@@ -90,22 +91,22 @@ protected:
   std::istream *m_inputStream;
   std::ostream *m_nBestStream;
   // std::ostream *m_outputWordGraphStream;
-  // std::auto_ptr<std::ostream> m_outputSearchGraphStream;
+  // std::unique_ptr<std::ostream> m_outputSearchGraphStream;
   // std::ostream *m_detailedTranslationReportingStream;
   std::ostream *m_unknownsStream;
   // std::ostream *m_detailedTreeFragmentsTranslationReportingStream;
   std::ofstream *m_alignmentInfoStream;
   std::ofstream *m_latticeSamplesStream;
 
-  std::auto_ptr<Moses::OutputCollector> m_singleBestOutputCollector;
-  std::auto_ptr<Moses::OutputCollector> m_nBestOutputCollector;
-  std::auto_ptr<Moses::OutputCollector> m_unknownsCollector;
-  std::auto_ptr<Moses::OutputCollector> m_alignmentInfoCollector;
-  std::auto_ptr<Moses::OutputCollector> m_searchGraphOutputCollector;
-  std::auto_ptr<Moses::OutputCollector> m_detailedTranslationCollector;
-  std::auto_ptr<Moses::OutputCollector> m_wordGraphCollector;
-  std::auto_ptr<Moses::OutputCollector> m_latticeSamplesCollector;
-  std::auto_ptr<Moses::OutputCollector> m_detailTreeFragmentsOutputCollector;
+  std::unique_ptr<Moses::OutputCollector> m_singleBestOutputCollector;
+  std::unique_ptr<Moses::OutputCollector> m_nBestOutputCollector;
+  std::unique_ptr<Moses::OutputCollector> m_unknownsCollector;
+  std::unique_ptr<Moses::OutputCollector> m_alignmentInfoCollector;
+  std::unique_ptr<Moses::OutputCollector> m_searchGraphOutputCollector;
+  std::unique_ptr<Moses::OutputCollector> m_detailedTranslationCollector;
+  std::unique_ptr<Moses::OutputCollector> m_wordGraphCollector;
+  std::unique_ptr<Moses::OutputCollector> m_latticeSamplesCollector;
+  std::unique_ptr<Moses::OutputCollector> m_detailTreeFragmentsOutputCollector;
 
   bool m_surpressSingleBestOutput;
 

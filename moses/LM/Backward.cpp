@@ -19,6 +19,8 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 ***********************************************************************/
 
+#include <memory>
+
 #include "lm/binary_format.hh"
 #include "lm/enumerate_vocab.hh"
 #include "lm/left.hh"
@@ -222,7 +224,7 @@ template <class Model> FFState *BackwardLanguageModel<Model>::Evaluate(const Hyp
   if (!hypo.GetCurrTargetLength()) {
 
     // reuse and return the previous state
-    std::auto_ptr<BackwardLMState> ret(new BackwardLMState());
+    std::unique_ptr<BackwardLMState> ret(new BackwardLMState());
     ret->state = static_cast<const BackwardLMState&>(*ps).state;
     return ret.release();
 
@@ -247,7 +249,7 @@ template <class Model> FFState *BackwardLanguageModel<Model>::Evaluate(const Phr
 
   const lm::ngram::ChartState &previous = static_cast<const BackwardLMState&>(*ps).state;
 
-  std::auto_ptr<BackwardLMState> ret(new BackwardLMState());
+  std::unique_ptr<BackwardLMState> ret(new BackwardLMState());
 
   lm::ngram::RuleScore<Model> scorer(*m_ngram, ret->state);
 
