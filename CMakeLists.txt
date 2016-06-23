@@ -46,7 +46,7 @@ if (USE_IRSTLM)
     add_definitions(-DLM_IRST)
 endif (USE_IRSTLM)
 
-
+add_definitions(-DHAVE_ZLIB=1)
 add_definitions(-DMAX_NUM_FACTORS=4 -DKENLM_MAX_ORDER=6 -DWITH_THREADS -DBOOST_TEST_DYN_LINK -DPT_UG)
 # note: MOSES_VERSION_ID is defined in moses/CMakeLists.txt
 

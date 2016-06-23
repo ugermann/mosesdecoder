@@ -66,7 +66,7 @@ set(EXE_LIST
 
 AddExes(EXES ${EXE_LIST}
         DEPENDS $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_util>
-        LIBRARIES ${Boost_LIBRARIES} pthread)
+        LIBRARIES ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} pthread)
 
 # Conditionally build the interpolation code
 if(BUILD_INTERPOLATE)
