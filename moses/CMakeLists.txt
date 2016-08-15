@@ -108,7 +108,7 @@ LM/BackwardLMState.cpp
 LM/Base.cpp
 LM/BilingualLM.cpp
 LM/Implementation.cpp
-LM/IRST.cpp
+#LM/IRST.cpp
 LM/Ken.cpp
 LM/MultiFactor.cpp
 LM/Multiplexer.cpp

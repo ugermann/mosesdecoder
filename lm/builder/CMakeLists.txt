@@ -45,7 +45,7 @@ add_library(kenlm_builder OBJECT ${KENLM_BUILDER_SOURCE})
 add_executable(lmplz lmplz_main.cc $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_common> $<TARGET_OBJECTS:kenlm_builder> $<TARGET_OBJECTS:kenlm_util>)
 
 # Link the executable against boost
-target_link_libraries(lmplz ${Boost_LIBRARIES} pthread)
+target_link_libraries(lmplz ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} pthread)
 
 # Group executables together
 set_target_properties(lmplz PROPERTIES FOLDER executables)

@@ -52,6 +52,32 @@ public:
 
   virtual float GetInterpolatedScore() = 0;
 
+  void FixInterpolatedScore() {
+    // const std::valarray<FValue> &scores = this->m_scores.getCoreFeatures();
+    std::valarray<FValue> &scores = (std::valarray<FValue>&)this->m_scores.getCoreFeatures();
+
+    int scores_to_skip = 0;
+    // count the non-zero scores
+    for (size_t i = 0; i < scores.size(); i++) {
+      if (scores[i] == 0) {scores_to_skip++;}
+    }
+    // if all scores are null, then keep all
+    if (scores_to_skip == scores.size()) {
+      scores_to_skip = 0;
+    }
+    // just keep the original values if no scores to skip
+    if (scores_to_skip != 0) {
+      // substitute null scores with -INFINITE values
+      int substitutions = 0;
+      for (size_t i = 0; i < scores.size(); i++) {
+	if (scores[i] == 0) {
+	  scores[i] = -999;
+	  substitutions++;
+	}
+      }
+    }
+  }
+
 protected:
   const ScoreComponentCollection& m_weights;
 };
@@ -83,6 +109,7 @@ public:
 
   virtual float GetInterpolatedScore() {
     // log-sum-exp, with weighted sum
+
     const std::valarray<FValue> &scores = this->m_scores.getCoreFeatures();
     const std::valarray<FValue> &weights = this->m_weights.getCoreFeatures();
 
@@ -141,6 +168,7 @@ public:
 
     return interpolated;
   }
+
 };
 
 class LinearPlainInterpolator : public Interpolator {
@@ -531,12 +559,18 @@ void LanguageModelMultiplexer::CalcScore(const Phrase &phrase, float &fullScore,
     oovCount = std::min(oovs, oovCount);
   }
 
+  // there is no need here to fix the null scores before interpolation
   fullScore = fullScores->GetInterpolatedScore();
+  // fix the null scores before interpolation
+  ngramScores->FixInterpolatedScore();
   ngramScore = ngramScores->GetInterpolatedScore();
 }
 
 FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const
 {
+  // WARNING: printing hypo cause the MuxLM score disappear from nbest!
+  // VERBOSE(1, "\nhypo |" << hypo << "|\n");
+
   VERBOSE(3,"void LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, ...)" << std::endl);
 
   std::vector<size_t>& active_features = *active_features_.get(); // indices into features_
@@ -554,6 +588,8 @@ FFState* LanguageModelMultiplexer::EvaluateWhenApplied(const Hypothesis &hypo, c
   if(OOVFeatureEnabled()) {
     UTIL_THROW2("OOV feature is not implemented yet");
   }
+  // fix the null scores before interpolation
+  score->FixInterpolatedScore();
   out->PlusEquals(this, score->GetInterpolatedScore());
 
   //XVERBOSE(2, "MUXLM total score[" << this->GetIndex() << "] = " << out->GetScoresVector()[this->GetIndex() + 0] << "\n");
