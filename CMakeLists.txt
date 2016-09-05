@@ -93,8 +93,6 @@ add_executable(moses-main moses-cmd/Main.cpp)
 target_link_libraries(moses-main ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES} moses)
 link_directories(${mosesdecoder_BINARY_DIR}/moses)  # link against libmoses.so
 
-add_executable(symal symal/cmd.c symal/symal.cpp)
-
 # Mert
 add_subdirectory(mert)
 
