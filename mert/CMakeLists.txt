@@ -53,9 +53,9 @@ set(MERT_SRC
         PermutationScorer.cpp
         StatisticsBasedScorer.cpp)
 
-set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
+set(Boost_USE_STATIC_RUNTIME ON)
 find_package(Boost REQUIRED COMPONENTS
         system
         thread

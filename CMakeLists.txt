@@ -90,8 +90,12 @@ if (USE_IRSTLM)
     target_link_libraries(moses ${IRSTLM_LIBRARIES})
 endif (USE_IRSTLM)
 
+SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+SET(BUILD_SHARED_LIBRARIES OFF)
+SET(CMAKE_EXE_LINKER_FLAGS "-static")
+
 add_executable(moses-main moses-cmd/Main.cpp)
-target_link_libraries(moses-main ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES} moses)
+target_link_libraries(moses-main moses ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES})
 link_directories(${mosesdecoder_BINARY_DIR}/moses)  # link against libmoses.so
 
 add_executable(symal symal/cmd.c symal/symal.cpp)
