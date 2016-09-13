@@ -9,7 +9,7 @@
 #include <boost/iostreams/operations.hpp> // get, WOULD_BLOCK
 #include <boost/iostreams/copy.hpp>       // get, WOULD_BLOCK
 #include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filter/bzip2.hpp>
+// #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include <iostream>

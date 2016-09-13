@@ -34,10 +34,10 @@ namespace ugdiss
       {
 	in.push(gzip_decompressor());
       }
-    else if (ends_with(fname, "bz2"))
-      {
-	in.push(bzip2_decompressor());
-      }
+    // else if (ends_with(fname, "bz2"))
+    //   {
+    // 	in.push(bzip2_decompressor());
+    //   }
     in.push(file_source(fname.c_str()));
   }
 
@@ -48,10 +48,10 @@ namespace ugdiss
       {
 	out.push(gzip_compressor());
       }
-    else if (ends_with(fname, ".bz2") || ends_with(fname, ".bz2_"))
-      {
-	out.push(bzip2_compressor());
-      }
+    // else if (ends_with(fname, ".bz2") || ends_with(fname, ".bz2_"))
+    //   {
+    // 	out.push(bzip2_compressor());
+    //   }
     out.push(file_sink(fname.c_str()));
   }
 }
