@@ -1434,12 +1434,11 @@ int Manager::GetNextHypoId()
 
 void Manager::ResetSentenceStats(const InputType& source)
 {
-  m_sentenceStats = std::auto_ptr<SentenceStats>(new SentenceStats(source));
+  m_sentenceStats.reset(new SentenceStats(source));
 }
 SentenceStats& Manager::GetSentenceStats() const
 {
   return *m_sentenceStats;
-
 }
 
 void Manager::OutputBest(OutputCollector *collector)  const

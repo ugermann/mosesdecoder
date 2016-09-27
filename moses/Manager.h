@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef moses_Manager_h
 #define moses_Manager_h
 
+#include <memory>
 #include <vector>
 #include <list>
 #include "InputType.h"
@@ -117,7 +118,7 @@ protected:
 
   HypothesisStack* actual_hypoStack; /**actual (full expanded) stack of hypotheses*/
   size_t interrupted_flag;
-  std::auto_ptr<SentenceStats> m_sentenceStats;
+  std::unique_ptr<SentenceStats> m_sentenceStats;
   int m_hypoId; //used to number the hypos as they are created.
 
   void GetConnectedGraph(

@@ -100,7 +100,7 @@ VERBOSE(2,"LanguageModelImplementation::CalcScore(const Phrase &phrase, float &f
 
   vector<const Word*> contextFactor;
   contextFactor.reserve(GetNGramOrder());
-  std::auto_ptr<FFState> state(NewState((phrase.GetWord(0) == GetSentenceStartWord()) ?
+  std::unique_ptr<FFState> state(NewState((phrase.GetWord(0) == GetSentenceStartWord()) ?
                                         GetBeginSentenceState() : GetNullContextState()));
   size_t currPos = 0;
   while (currPos < phraseSize) {

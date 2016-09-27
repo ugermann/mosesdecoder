@@ -17,7 +17,7 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_INSTALL_PREFIX}/bin)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_INSTALL_PREFIX}/lib)
 
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # to build shared libmoses.so with KenLM inside (probably needed for KenLM only)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
@@ -97,8 +97,6 @@ SET(CMAKE_EXE_LINKER_FLAGS "-static")
 add_executable(moses-main moses-cmd/Main.cpp)
 target_link_libraries(moses-main moses ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES})
 link_directories(${mosesdecoder_BINARY_DIR}/moses)  # link against libmoses.so
-
-add_executable(symal symal/cmd.c symal/symal.cpp)
 
 # Mert
 add_subdirectory(mert)

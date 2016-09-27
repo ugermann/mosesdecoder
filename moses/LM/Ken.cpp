@@ -246,7 +246,7 @@ template <class Model> FFState *LanguageModelKen<Model>::EvaluateWhenApplied(con
 {
   const lm::ngram::State &in_state = static_cast<const KenLMState&>(*ps).state;
 
-  std::auto_ptr<KenLMState> ret(new KenLMState());
+  std::unique_ptr<KenLMState> ret(new KenLMState());
 
   if (!hypo.GetCurrTargetLength()) {
     ret->state = in_state;
