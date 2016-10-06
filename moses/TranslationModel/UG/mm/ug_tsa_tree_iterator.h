@@ -1,5 +1,12 @@
 // -*- mode: c++; indent-tabs-mode: nil; tab-width:2  -*-
 // (c) 2007 - 2010 Ulrich Germann. All rights reserved.
+
+// Lots of functionality was removed by David Madl 
+// with commit fa0312f45a7559740fc04d692b8f0eda456e5ee1 
+// Check the respective githup commit diff or copy from commit 
+// b32d7754cdf3a2090e3685dc3a0851d343891a70
+// if you need the functions back.
+
 #ifndef __ug_tsa_tree_iterator_h
 #define __ug_tsa_tree_iterator_h
 
@@ -10,9 +17,7 @@
 #include "util/exception.hh"
 #include "moses/Util.h"
 #include "util/random.hh"
-//#include <cassert>
-
-// #include "ug_bv_iter.h"
+#include "util/murmur_hash.hh"
 
 namespace sapt
 {
@@ -61,7 +66,7 @@ namespace sapt
     // TO BE DONE: make the pointer private and add a const function
     // to return the pointer
 
-    // TSA_tree_iterator(TSA_tree_iterator const& other);
+    TSA_tree_iterator(TSA_tree_iterator const& other);
     TSA_tree_iterator(TSA<Token> const* s);
     TSA_tree_iterator(TSA<Token> const* s, TSA_tree_iterator<Token> const& other);
     TSA_tree_iterator(TSA<Token> const* r, id_type const* s, size_t const len);
@@ -71,15 +76,14 @@ namespace sapt
 		      size_t const len,
 		      bool full_match_only=true);
     TSA_tree_iterator(TSA<Token> const* s,
-		      Token const* kstart,
-		      Token const* kend,
-		      bool full_match_only=true);
-    TSA_tree_iterator(TSA<Token> const* s,
     		      TokenIndex const& V,
      		      std::string const& key);
 
     char const* lower_bound(int p) const;
     char const* upper_bound(int p) const;
+
+    /** @return an index position idx between lower_bound and upper_bound. */
+    char const* index_jump_precise(size_t idx) const;
 
     size_t size() const;
     // Token const& wid(int p) const;
@@ -88,7 +92,9 @@ namespace sapt
     ushort getOffset(int p) const;
     size_t sntCnt(int p=-1) const;
     size_t rawCnt(int p=-1) const;
-    ::uint64_t getPid(int p=-1) const; // get phrase id
+
+    /** Get phrase ID, unique for distinct phrases (even across domain TSA indexes). Useful as a map key. */
+    uint64_t getPid() const;
 
     virtual bool extend(Token const& id);
     virtual bool extend(id_type id);
@@ -336,6 +342,12 @@ namespace sapt
   //----------------------------------------------------------------------------
   template<typename Token>
   TSA_tree_iterator<Token>::
+  TSA_tree_iterator(TSA_tree_iterator<Token> const& other)
+    : lower(other.lower), upper(other.upper), root(other.root)
+  {};
+
+  template<typename Token>
+  TSA_tree_iterator<Token>::
   TSA_tree_iterator(TSA<Token> const* s)
     : root(s)
   {};
@@ -365,7 +377,6 @@ namespace sapt
 
   // ---------------------------------------------------------------------------
 
-#if 1
   template<typename Token>
   TSA_tree_iterator<Token>::
   TSA_tree_iterator(TSA<Token> const* s,
@@ -386,37 +397,6 @@ namespace sapt
 	  }
       }
   };
-#endif
-
-#if 0
-  // ---------------------------------------------------------------------------
-
-  template<typename Token>
-  TSA_tree_iterator<Token>::
-  TSA_tree_iterator(TSA_tree_iterator<Token> const& other)
-    : root(other.root)
-  {
-    lower = other.lower;
-    upper = other.upper;
-  };
-
-  // ---------------------------------------------------------------------------
-
-  template<typename Token>
-  TSA_tree_iterator<Token>::
-  TSA_tree_iterator(TSA<Token> const* s, Token const& t)
-    : root(s)
-  {
-    if (!root) return;
-    char const* up = root->getUpperBound(t.id());
-    if (!up) return;
-    lower.push_back(root->getLowerBound(t.id()));
-    upper.push_back(up);
-  };
-
-  // ---------------------------------------------------------------------------
-
-#endif
 
   template<typename Token>
   TSA_tree_iterator<Token>::
@@ -435,23 +415,6 @@ namespace sapt
       }
   };
 
-  // DEPRECATED: DO NOT USE. Use the one that takes the length
-  // instead of kend.
-  template<typename Token>
-  TSA_tree_iterator<Token>::
-  TSA_tree_iterator(TSA<Token> const* s, Token const* kstart,
-		    Token const* kend, bool full_match_only)
-    : root(s)
-  {
-    for (;kstart != kend; kstart = kstart->next())
-      if (!extend(*kstart))
-        break;
-    if (full_match_only && kstart != kend)
-      {
-        lower.clear();
-        upper.clear();
-      }
-  };
 
   // ---------------------------------------------------------------------------
   // EXTEND
@@ -531,16 +494,26 @@ namespace sapt
   template<typename Token>
   ::uint64_t
   TSA_tree_iterator<Token>::
-  getPid(int p) const
+  getPid() const
   {
+    int p = -1;
     if (this->size() == 0) return 0;
-    if (p < 0) p += upper.size();
-    char const* lb = lower_bound(p);
-    char const* ub = upper_bound(p);
-    ::uint64_t sid,off;
-    root->readOffset(root->readSid(lb,ub,sid),ub,off);
-    ::uint64_t ret = (sid<<32) + (off<<16) + ::uint64_t(p+1);
-    return ret;
+
+    tsa::ArrayEntry A(root,lower.back());
+    Token const* t   = root->corpus->getToken(A); assert(t);
+    //Token const* bos = root->corpus->sntStart(A.sid);
+    //Token const* eos = root->corpus->sntEnd(A.sid);
+
+    if (p < 0) p += this->size();
+    // cerr << p << ". " << t->id() << std::endl;
+
+    // a bit besides the point for our templated self, but I want to be sure.
+    assert(sizeof(id_type) == sizeof(Token));
+
+    // p: phrase length - 1?? (originally a word counter into the phrase??)
+
+    // note: this makes a hard assumption about a consecutive memory layout of corpus track tokens.
+    return util::MurmurHash64A(t, sizeof(Token) * size_t(p+1));
   }
 
   // ---------------------------------------------------------------------------
@@ -565,6 +538,19 @@ namespace sapt
     if (p < 0) p += upper.size();
     assert(p >= 0 && p < int(upper.size()));
     return upper[p];
+  }
+
+  /**
+   * @return an index position idx between /startRange/ and /endRange/.
+   */
+  template<typename Token>
+  char const*
+  TSA_tree_iterator<Token>::
+  index_jump_precise(size_t idx) const
+  {
+    const char* startRange = lower_bound(-1);
+    const char* stopRange = upper_bound(-1);
+    return root->index_jump_precise(startRange, stopRange, idx);
   }
 
   // ---------------------------------------------------------------------------
@@ -616,6 +602,8 @@ namespace sapt
   TSA_tree_iterator<Token>::
   rawCnt(int p) const
   {
+    if(lower.size() == 0)
+      return 0;
     if (p < 0) p += lower.size();
     assert(p>=0);
     if (lower.size() == 0) return root->getCorpusSize();
@@ -646,8 +634,8 @@ namespace sapt
     char const* lo = lower.back();
     char const* up = upper.back();
     char const* p = lo;
-    id_type sid;
-    ushort  off;
+    tpt::id_type sid;
+    tpt::offset_type  off;
     count_type wcount=0;
     while (p < up)
       {

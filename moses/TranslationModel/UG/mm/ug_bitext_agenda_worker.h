@@ -18,7 +18,8 @@ Bitext<Token>::agenda
   //   reduce the number of lock / unlock operations we need to do
   //   during sampling.
 
-  uint64_t sid=0, offset=0;       // sid and offset of source phrase
+  tpt::id_type sid=0;             // sid of source phrase
+  tpt::offset_type offset=0;      // offset of source phrase
   size_t s1=0, s2=0, e1=0, e2=0;  // soft and hard boundaries of target phrase
   std::vector<unsigned char> aln; // stores phrase-pair-internal alignment
   while(SPTR<job> j = ag.get_job())
@@ -88,8 +89,9 @@ Bitext<Token>::agenda
 		  seen.push_back(tpid);
 
 		  size_t raw2 = b->approxOccurrenceCount();
+                  phrase<Token> trg(o + s, i - s);
 		  float bwgt = j->m_bias ? (*j->m_bias)[sid] : 1;
-		  j->stats->add(tpid, sample_weight, bwgt, aln, raw2,
+		  j->stats->add(tpid, (phrase<id_type> &) trg, sample_weight, bwgt, aln, raw2,
 				po_fwd, po_bwd, docid);
 		  bool ok = (i == e2) || b->extend(o[i].id());
 		  UTIL_THROW_IF2(!ok, "Could not extend target phrase.");

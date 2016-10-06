@@ -365,6 +365,7 @@ protected:
 
   void LookaheadScore(const OrientationPhraseProperty *orientationPhraseProperty,
                       ScoreComponentCollection &scoreBreakdown,
+                      const Factor* targetPhraseLHS,
                       bool subtract=false) const;
 
   size_t GetHeuristicScoreIndex(const std::vector<float>& scores,
@@ -405,9 +406,13 @@ protected:
   static const std::string SORIENT;
   static const std::string DORIENT;
 
-  std::string m_glueTargetLHSStr;
-  const Factor* m_glueTargetLHS;
+  std::string m_glueLabelStr;
+  const Factor* m_glueLabel;
+  bool m_noScoreBoundary;
+  bool m_monotoneScoreBoundary;
   bool m_distinguishStates;
+  bool m_lookaheadScore;
+  bool m_heuristicScoreUseWeights;
   bool m_useSparseWord;
   bool m_useSparseNT;
   size_t m_offsetR2LScores;

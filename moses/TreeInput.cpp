@@ -55,6 +55,8 @@ ProcessAndStripXMLTags(AllOptions const& opts, string &line,
   string cleanLine; // return string (text without xml)
   size_t wordPos = 0; // position in sentence (in terms of number of words)
 
+  boost::shared_ptr<TranslationTask> null_ttask;
+
   // loop through the tokens
   for (size_t xmlTokenPos = 0 ; xmlTokenPos < xmlTokens.size() ; xmlTokenPos++) {
     // not a xml tag, but regular text (may contain many words)
@@ -181,7 +183,7 @@ ProcessAndStripXMLTags(AllOptions const& opts, string &line,
           //TRACE_ERR("number of translations: " << altTexts.size() << endl);
           for (size_t i=0; i<altTexts.size(); ++i) {
             // set target phrase
-            TargetPhrase targetPhrase(firstPt);
+            TargetPhrase targetPhrase(null_ttask, firstPt); // TODO: XML-created TargetPhrase will not be able to score itself properly since it's lacking ContextScope
             targetPhrase.CreateFromString(Output, oFactors, altTexts[i], NULL);
 
             // set constituent label

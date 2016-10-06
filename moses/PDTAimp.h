@@ -61,6 +61,8 @@ public:
   std::vector<size_t> path1Best,pathExplored;
   std::vector<double> pathCN;
 
+  ttasksptr m_ttask;
+
   ~PDTAimp();
 
   void Factors2String(Word const& w,std::string& s) const {
@@ -75,7 +77,8 @@ public:
   void Create(const std::vector<FactorType> &input
               , const std::vector<FactorType> &output
               , const std::string &filePath
-              , const std::vector<float> &weight);
+              , const std::vector<float> &weight
+              , const ttasksptr &ttask);
 
 
   typedef PhraseDictionaryTree::PrefixPtr PPtr;
@@ -116,7 +119,7 @@ public:
 
   void CreateTargetPhrase(TargetPhrase& targetPhrase,
                           StringTgtCand::Tokens const& factorStrings,
-			  std::string const& factorDelimiter,
+                          std::string const& factorDelimiter,
                           Scores const& transVector,
                           Scores const& inputVector,
                           const std::string *alignmentString,

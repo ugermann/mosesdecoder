@@ -51,13 +51,13 @@ int main(int argc, char const* argv[])
     exit(1);
 
   StaticData const& global = StaticData::Instance();
-  global.SetVerboseLevel(0);
-  vector<FactorType> ifo = global.GetInputFactorOrder();
+  //global.SetVerboseLevel(0);
+  vector<FactorType> ifo = global.options()->input.factor_order;
 
   PhraseDictionary* PT = PhraseDictionary::GetColl()[0];
-  Mmsapt* mmsapt = dynamic_cast<Mmsapt*>(PT);
-  PhraseDictionaryTreeAdaptor* pdta = dynamic_cast<PhraseDictionaryTreeAdaptor*>(PT);
-  // vector<FeatureFunction*> const& ffs = FeatureFunction::GetFeatureFunctions();
+  Mmsapt* mmsapt; PhraseDictionaryTreeAdaptor* pdta;
+  mmsapt = dynamic_cast<Mmsapt*>(PT);
+  pdta   = dynamic_cast<PhraseDictionaryTreeAdaptor*>(PT);
 
   if (!mmsapt && !pdta)
     {
@@ -65,23 +65,37 @@ int main(int argc, char const* argv[])
       exit(1);
     }
 
+  // CONTEXT WEIGHTS, via moses.ini or cmdline option
+
+  // global scope of caches, biases, etc., if any
+  boost::shared_ptr<ContextScope> gscope;
+  gscope.reset(new ContextScope(StaticData::Instance().GetAllWeightsNew()));
+
+  // ... or weights for documents/domains from config file / cmd. line
+  std::string context_weights;
+  params.SetParameter(context_weights,"context-weights",string(""));
+
+  // CONTEXT WEIGHTS END
+
+
   string line;
   while (true)
     {
-      boost::shared_ptr<Sentence> phrase(new Sentence);
-      if (!phrase->Read(cin,ifo, StaticData::Instance().options())) break;
+      boost::shared_ptr<Sentence> phrase(new Sentence(global.options()));
+      if (!phrase->Read(cin)) break;
       boost::shared_ptr<TranslationTask> ttask;
-      ttask = TranslationTask::create(phrase);
-      if (pdta)
-	{
-	  pdta->InitializeForInput(ttask);
-	  // do we also need to call CleanupAfterSentenceProcessing at the end?
-	}
-      Phrase& p = *phrase;
+      boost::shared_ptr<IOWrapper> ioWrapper;
+      ttask = TranslationTask::create(phrase, ioWrapper, gscope);
 
+      if (context_weights != "" && !ttask->GetScope()->GetContextWeights())
+        ttask->GetScope()->SetContextWeights(context_weights);
+
+      StaticData::Instance().InitializeForInput(ttask);
+      
+      Phrase const& p = *phrase;
       cout << p << endl;
       TargetPhraseCollection::shared_ptr trg 
-	= PT->GetTargetPhraseCollectionLEGACY(ttask,p);
+	= PT->GetTargetPhraseCollectionLEGACY(ttask, p);
       if (!trg) continue;
       vector<size_t> order(trg->GetSize());
       for (size_t i = 0; i < order.size(); ++i) order[i] = i;
@@ -119,7 +133,6 @@ int main(int argc, char const* argv[])
       	    }
       	  cout << endl;
       	}
-      // PT->Release(ttask, trg);
     }
   exit(0);
 }

@@ -24,7 +24,14 @@ public:
     return m_statelessFFs;
   }
 
-  StatelessFeatureFunction(const std::string &line, bool registerNow);
+  static void RegisterStatelessFeatureFunction(const FeatureFunction* ff) {
+    const StatelessFeatureFunction* sff = dynamic_cast<const StatelessFeatureFunction*>(ff);
+    if(sff != NULL)
+      m_statelessFFs.push_back(sff);
+  }
+
+
+  StatelessFeatureFunction(const std::string &line);
   StatelessFeatureFunction(size_t numScoreComponents, const std::string &line);
 
   /**

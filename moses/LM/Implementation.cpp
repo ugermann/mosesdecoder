@@ -41,7 +41,7 @@ using namespace std;
 namespace Moses
 {
 LanguageModelImplementation::LanguageModelImplementation(const std::string &line)
-  :LanguageModel(line)
+  :LanguageModel(line), m_nGramOrder(0)
 {
 }
 
@@ -74,6 +74,7 @@ LMResult LanguageModelImplementation::GetValueGivenState(
   const std::vector<const Word*> &contextFactor,
   FFState &state) const
 {
+VERBOSE(2,"LMResult LanguageModelImplementation::GetValueGivenState(const std::vector<const Word*> &contextFactor,...)" << std::endl);
   return GetValueForgotState(contextFactor, state);
 }
 
@@ -81,12 +82,14 @@ void LanguageModelImplementation::GetState(
   const std::vector<const Word*> &contextFactor,
   FFState &state) const
 {
+VERBOSE(2,"LMResult LanguageModelImplementation::GetState(const std::vector<const Word*> &contextFactor,...)" << std::endl);
   GetValueForgotState(contextFactor, state);
 }
 
 // Calculate score of a phrase.
 void LanguageModelImplementation::CalcScore(const Phrase &phrase, float &fullScore, float &ngramScore, size_t &oovCount) const
 {
+VERBOSE(2,"LanguageModelImplementation::CalcScore(const Phrase &phrase, float &fullScore,...)" << std::endl);
   fullScore  = 0;
   ngramScore = 0;
 
@@ -97,7 +100,7 @@ void LanguageModelImplementation::CalcScore(const Phrase &phrase, float &fullSco
 
   vector<const Word*> contextFactor;
   contextFactor.reserve(GetNGramOrder());
-  std::auto_ptr<FFState> state(NewState((phrase.GetWord(0) == GetSentenceStartWord()) ?
+  std::unique_ptr<FFState> state(NewState((phrase.GetWord(0) == GetSentenceStartWord()) ?
                                         GetBeginSentenceState() : GetNullContextState()));
   size_t currPos = 0;
   while (currPos < phraseSize) {
@@ -135,6 +138,7 @@ void LanguageModelImplementation::CalcScore(const Phrase &phrase, float &fullSco
 
 FFState *LanguageModelImplementation::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps, ScoreComponentCollection *out) const
 {
+VERBOSE(2,"FFState *LanguageModelImplementation::EvaluateWhenApplied(const Hypothesis &hypo, const FFState *ps,...)" << std::endl);
   // In this function, we only compute the LM scores of n-grams that overlap a
   // phrase boundary. Phrase-internal scores are taken directly from the
   // translation option.
@@ -223,6 +227,7 @@ FFState *LanguageModelImplementation::EvaluateWhenApplied(const Hypothesis &hypo
 
 FFState* LanguageModelImplementation::EvaluateWhenApplied(const ChartHypothesis& hypo, int featureID, ScoreComponentCollection* out) const
 {
+VERBOSE(2,"FFState *LanguageModelImplementation::EvaluateWhenApplied(const ChartHypothesis& hypo, int featureID,,...)" << std::endl);
   LanguageModelChartState *ret = new LanguageModelChartState(hypo, featureID, GetNGramOrder());
   // data structure for factored context phrase (history and predicted word)
   vector<const Word*> contextFactor;

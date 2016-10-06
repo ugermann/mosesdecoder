@@ -38,6 +38,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 namespace Moses
 {
 
+class ContextScope;
+class HypothesisStack;
 class BitmapContainer;
 class BackwardsEdge;
 class Hypothesis;
@@ -191,6 +193,7 @@ private:
 
   std::vector< const Hypothesis* > m_hypotheses;
   boost::unordered_set< int > m_seenPosition;
+  const ContextScope *m_contextScope;
 
   // We don't want to instantiate "empty" objects.
   BackwardsEdge();
@@ -261,6 +264,7 @@ public:
   const HypothesisSet &GetHypotheses() const;
   size_t GetHypothesesSize() const;
   const BackwardsEdgeSet &GetBackwardsEdges();
+  const HypothesisStack &GetStack() const;
 
   void InitializeEdges();
   void ProcessBestHypothesis();

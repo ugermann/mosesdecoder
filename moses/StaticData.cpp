@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "moses/FF/Factory.h"
+#include "moses/PP/Factory.h"
 #include "TypeDef.h"
 #include "moses/FF/WordPenaltyProducer.h"
 #include "moses/FF/UnknownWordPenaltyProducer.h"
@@ -69,7 +70,8 @@ StaticData StaticData::s_instance;
 StaticData::StaticData()
   : m_options(new AllOptions)
   , m_requireSortingAfterSourceContext(false)
-  , m_currentWeightSetting("default")
+  , m_registry(new FeatureRegistry)
+  , m_phrasePropertyFactory(new PhrasePropertyFactory)
   , m_treeStructure(NULL)
 {
   Phrase::InitializeMemPool();
@@ -109,13 +111,13 @@ StaticData
     = featureNameOverride.find(feature);
     if (iter == featureNameOverride.end()) {
       // feature name not override
-      m_registry.Construct(feature, line);
+      m_registry->Construct(feature, line);
     } else {
       // replace feature name with new name
       string newName = iter->second;
       feature = newName;
       string newLine = Join(" ", toks);
-      m_registry.Construct(newName, newLine);
+      m_registry->Construct(newName, newLine);
     }
   }
 
@@ -128,7 +130,6 @@ bool
 StaticData
 ::ini_output_options()
 {
-  const PARAM_VEC *params;
   // verbose level
   m_parameter->SetParameter(m_verboseLevel, "verbose", (size_t) 1);
   m_parameter->SetParameter<string>(m_outputUnknownsFile,
@@ -233,26 +234,12 @@ bool StaticData::LoadData(Parameter *parameter)
   //Load sparse features from config (overrules weight file)
   LoadSparseWeightsFromConfig();
 
-  // load alternate weight settings
-  //
-  // When and where are these used??? [UG]
-  //
-  // Update: Just checked the manual. The config file is NOT the right
-  // place to do this. [UG]
-  //
-  // <TODO>
-  // * Eliminate alternate-weight-setting. Alternate weight settings should
-  //   be provided with the input, not in the config file.
-  // </TODO>
-  params = m_parameter->GetParam("alternate-weight-setting");
-  if (params && params->size() && !LoadAlternateWeightSettings())
-    return false;
-
   return true;
 }
 
 void StaticData::SetWeight(const FeatureFunction* sp, float weight)
 {
+  boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
   m_allWeights.Resize();
   m_allWeights.Assign(sp,weight);
 }
@@ -260,6 +247,7 @@ void StaticData::SetWeight(const FeatureFunction* sp, float weight)
 void StaticData::SetWeights(const FeatureFunction* sp,
                             const std::vector<float>& weights)
 {
+  boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
   m_allWeights.Resize();
   m_allWeights.Assign(sp,weights);
 }
@@ -694,115 +682,6 @@ void StaticData::LoadSparseWeightsFromConfig()
 
 }
 
-
-/**! Read in settings for alternative weights */
-bool StaticData::LoadAlternateWeightSettings()
-{
-  if (m_threadCount > 1) {
-    cerr << "ERROR: alternative weight settings currently not supported with multi-threading.";
-    return false;
-  }
-
-  vector<string> weightSpecification;
-  const PARAM_VEC *params = m_parameter->GetParam("alternate-weight-setting");
-  if (params && params->size()) {
-    weightSpecification = *params;
-  }
-
-  // get mapping from feature names to feature functions
-  map<string,FeatureFunction*> nameToFF;
-  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
-  for (size_t i = 0; i < ffs.size(); ++i) {
-    nameToFF[ ffs[i]->GetScoreProducerDescription() ] = ffs[i];
-  }
-
-  // copy main weight setting as default
-  m_weightSetting["default"] = new ScoreComponentCollection( m_allWeights );
-
-  // go through specification in config file
-  string currentId = "";
-  bool hasErrors = false;
-  for (size_t i=0; i<weightSpecification.size(); ++i) {
-
-    // identifier line (with optional additional specifications)
-    if (weightSpecification[i].find("id=") == 0) {
-      vector<string> tokens = Tokenize(weightSpecification[i]);
-      vector<string> args = Tokenize(tokens[0], "=");
-      currentId = args[1];
-      VERBOSE(1,"alternate weight setting " << currentId << endl);
-      UTIL_THROW_IF2(m_weightSetting.find(currentId) != m_weightSetting.end(),
-                     "Duplicate alternate weight id: " << currentId);
-      m_weightSetting[ currentId ] = new ScoreComponentCollection;
-
-      // other specifications
-      for(size_t j=1; j<tokens.size(); j++) {
-        vector<string> args = Tokenize(tokens[j], "=");
-        // sparse weights
-        if (args[0] == "weight-file") {
-          if (args.size() != 2) {
-            std::cerr << "One argument should be supplied for weight-file";
-            return false;
-          }
-          ScoreComponentCollection extraWeights;
-          if (!extraWeights.Load(args[1])) {
-            std::cerr << "Unable to load weights from " << args[1];
-            return false;
-          }
-          m_weightSetting[ currentId ]->PlusEquals(extraWeights);
-        }
-        // ignore feature functions
-        else if (args[0] == "ignore-ff") {
-          set< string > *ffNameSet = new set< string >;
-          m_weightSettingIgnoreFF[ currentId ] = *ffNameSet;
-          vector<string> featureFunctionName = Tokenize(args[1], ",");
-          for(size_t k=0; k<featureFunctionName.size(); k++) {
-            // check if a valid nane
-            map<string,FeatureFunction*>::iterator ffLookUp = nameToFF.find(featureFunctionName[k]);
-            if (ffLookUp == nameToFF.end()) {
-              cerr << "ERROR: alternate weight setting " << currentId
-                   << " specifies to ignore feature function " << featureFunctionName[k]
-                   << " but there is no such feature function" << endl;
-              hasErrors = true;
-            } else {
-              m_weightSettingIgnoreFF[ currentId ].insert( featureFunctionName[k] );
-            }
-          }
-        }
-      }
-    }
-
-    // weight lines
-    else {
-      UTIL_THROW_IF2(currentId.empty(), "No alternative weights specified");
-      vector<string> tokens = Tokenize(weightSpecification[i]);
-      UTIL_THROW_IF2(tokens.size() < 2
-                     , "Incorrect format for alternate weights: " << weightSpecification[i]);
-
-      // get name and weight values
-      string name = tokens[0];
-      name = name.substr(0, name.size() - 1); // remove trailing "="
-      vector<float> weights(tokens.size() - 1);
-      for (size_t i = 1; i < tokens.size(); ++i) {
-        float weight = Scan<float>(tokens[i]);
-        weights[i - 1] = weight;
-      }
-
-      // check if a valid nane
-      map<string,FeatureFunction*>::iterator ffLookUp = nameToFF.find(name);
-      if (ffLookUp == nameToFF.end()) {
-        cerr << "ERROR: alternate weight setting " << currentId
-             << " specifies weight(s) for " << name
-             << " but there is no such feature function" << endl;
-        hasErrors = true;
-      } else {
-        m_weightSetting[ currentId ]->Assign( nameToFF[name], weights);
-      }
-    }
-  }
-  UTIL_THROW_IF2(hasErrors, "Errors loading alternate weights");
-  return true;
-}
-
 void StaticData::NoCache()
 {
   bool noCache;
@@ -819,7 +698,7 @@ void StaticData::NoCache()
 
 std::map<std::string, std::string>
 StaticData
-::OverrideFeatureNames()
+::OverrideFeatureNames() const
 {
   std::map<std::string, std::string> ret;
 
@@ -891,52 +770,5 @@ void StaticData::CheckLEGACYPT()
   m_useLegacyPT = false;
 }
 
-
-void StaticData::ResetWeights(const std::string &denseWeights, const std::string &sparseFile)
-{
-  m_allWeights = ScoreComponentCollection();
-
-  // dense weights
-  string name("");
-  vector<float> weights;
-  vector<string> toks = Tokenize(denseWeights);
-  for (size_t i = 0; i < toks.size(); ++i) {
-    const string &tok = toks[i];
-
-    if (ends_with(tok, "=")) {
-      // start of new feature
-
-      if (name != "") {
-        // save previous ff
-        const FeatureFunction &ff = FeatureFunction::FindFeatureFunction(name);
-        m_allWeights.Assign(&ff, weights);
-        weights.clear();
-      }
-
-      name = tok.substr(0, tok.size() - 1);
-    } else {
-      // a weight for curr ff
-      float weight = Scan<float>(toks[i]);
-      weights.push_back(weight);
-    }
-  }
-
-  const FeatureFunction &ff = FeatureFunction::FindFeatureFunction(name);
-  m_allWeights.Assign(&ff, weights);
-
-  // sparse weights
-  InputFileStream sparseStrme(sparseFile);
-  string line;
-  while (getline(sparseStrme, line)) {
-    vector<string> toks = Tokenize(line);
-    UTIL_THROW_IF2(toks.size() != 2, "Incorrect sparse weight format. Should be FFName_spareseName weight");
-
-    vector<string> names = Tokenize(toks[0], "_");
-    UTIL_THROW_IF2(names.size() != 2, "Incorrect sparse weight name. Should be FFName_spareseName");
-
-    const FeatureFunction &ff = FeatureFunction::FindFeatureFunction(names[0]);
-    m_allWeights.Assign(&ff, names[1], Scan<float>(toks[1]));
-  }
-}
 
 } // namespace

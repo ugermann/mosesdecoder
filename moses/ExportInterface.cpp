@@ -159,7 +159,9 @@ int
 run_as_server()
 {
 #ifdef HAVE_XMLRPC_C
-  kill(getppid(),SIGALRM);
+  if (params.GetParam("daemon")) {
+    kill(getppid(),SIGALRM);
+  }
   MosesServer::Server server(params);
   return server.run(); // actually: don't return. see Server::run()
 #else
@@ -185,7 +187,7 @@ batch_run()
                  << " [" << HERE << "]");
 
   // check on weights
-  const ScoreComponentCollection& weights = staticData.GetAllWeights();
+  ScoreComponentCollection weights = staticData.GetAllWeightsNew();
   IFVERBOSE(2) {
     TRACE_ERR("The global weight vector looks like this: ");
     TRACE_ERR(weights);
@@ -205,6 +207,10 @@ batch_run()
   std::string context_weights;
   params.SetParameter(context_weights,"context-weights",string(""));
 
+  // ... or weights for documents/domains from config file / cmd. line
+  std::string lm_interpolation_weights;
+  params.SetParameter(lm_interpolation_weights,"lm-interpolation-weights",string(""));
+
   // ... or the surrounding context (--context-window ...)
   size_t size_t_max = std::numeric_limits<size_t>::max();
   bool use_context_window = ioWrapper->GetLookAhead() || ioWrapper->GetLookBack();
@@ -221,7 +227,7 @@ batch_run()
   // global scope of caches, biases, etc., if any
   boost::shared_ptr<ContextScope> gscope;
   if (!use_sliding_context_window)
-    gscope.reset(new ContextScope);
+    gscope.reset(new ContextScope(StaticData::Instance().GetAllWeightsNew()));
 
   // main loop over set of input sentences
   boost::shared_ptr<InputType> source;
@@ -231,7 +237,7 @@ batch_run()
     // set up task of translating one sentence
     boost::shared_ptr<ContextScope>  lscope;
     if (gscope) lscope = gscope;
-    else lscope.reset(new ContextScope);
+    else lscope.reset(new ContextScope(StaticData::Instance().GetAllWeightsNew()));
 
     boost::shared_ptr<TranslationTask> task;
     task = TranslationTask::create(source, ioWrapper, lscope);
@@ -248,6 +254,9 @@ batch_run()
 
     if (context_weights != "" && !task->GetScope()->GetContextWeights())
       task->GetScope()->SetContextWeights(context_weights);
+    
+    if (lm_interpolation_weights != "" && !task->GetScope()->GetLmInterpolationWeights())
+      task->GetScope()->SetLmInterpolationWeights(lm_interpolation_weights);
 
     // Allow for (sentence-)context-specific processing prior to
     // decoding. This can be used, for example, for context-sensitive
@@ -307,6 +316,9 @@ batch_run()
 /** Called by main function of the command line version of the decoder **/
 int decoder_main(int argc, char const** argv)
 {
+  //setting in the Staticdata a link between the thread id of this process and a NULL tasksptr
+  // StaticData::InstanceNonConst().SetTask(); // => moved into StaticData constructor
+
 #ifdef NDEBUG
   try
 #endif

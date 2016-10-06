@@ -33,16 +33,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <fstream>
 #include <string>
 
-#ifdef WITH_THREADS
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
-#endif
+#include <boost/thread/locks.hpp>
 
 #include "Parameter.h"
 #include "SentenceStats.h"
 #include "ScoreComponentCollection.h"
-#include "moses/FF/Factory.h"
-#include "moses/PP/Factory.h"
 
 #include "moses/parameters/AllOptions.h"
 #include "moses/parameters/BookkeepingOptions.h"
@@ -56,6 +53,9 @@ class DecodeStep;
 
 class DynamicCacheBasedLanguageModel;
 class PhraseDictionaryDynamicCacheBased;
+
+class FeatureRegistry;
+class PhrasePropertyFactory;
 
 typedef std::pair<std::string, float> UnknownLHSEntry;
 typedef std::vector<UnknownLHSEntry>  UnknownLHSList;
@@ -74,7 +74,8 @@ protected:
   Parameter *m_parameter;
   boost::shared_ptr<AllOptions> m_options;
 
-  mutable ScoreComponentCollection m_allWeights;
+  ScoreComponentCollection m_allWeights;
+  mutable boost::mutex m_allWeightsMutex;
 
   std::vector<DecodeGraph*> m_decodeGraphs;
 
@@ -113,18 +114,13 @@ protected:
   int m_threadCount;
   // long m_startTranslationId;
 
-  // alternate weight settings
-  mutable std::string m_currentWeightSetting;
-  std::map< std::string, ScoreComponentCollection* > m_weightSetting; // core weights
-  std::map< std::string, std::set< std::string > > m_weightSettingIgnoreFF; // feature function
-  std::map< std::string, std::set< size_t > > m_weightSettingIgnoreDP; // decoding path
-
   bool m_useLegacyPT;
   // bool m_defaultNonTermOnlyForEmptyRange;
   // S2TParsingAlgorithm m_s2tParsingAlgorithm;
 
-  FeatureRegistry m_registry;
-  PhrasePropertyFactory m_phrasePropertyFactory;
+  // these are forward declared
+  boost::scoped_ptr<FeatureRegistry> m_registry;
+  boost::scoped_ptr<PhrasePropertyFactory> m_phrasePropertyFactory;
 
   StaticData();
 
@@ -203,17 +199,39 @@ public:
     m_verboseLevel = x;
   }
 
-  const ScoreComponentCollection&
-  GetAllWeights() const {
-    return m_allWeights;
+  /**
+   * Get feature weights.
+   *
+   * This is slow / locking on purpose.
+   * You should call ContextScope::GetFeatureWeights() instead!
+   */
+  ScoreComponentCollection
+  GetAllWeightsNew() const { // temporarily called GetAllWeightsNew() so we are aware of all call sites used in MMT.
+    boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
+    ScoreComponentCollection copy = m_allWeights;
+    return copy;
   }
 
+  ScoreComponentCollection GetAllWeights() const {
+    UTIL_THROW2("StaticData::GetAllWeights() should not be called anymore inside MMT - use GetAllWeightsNew() for now.");
+    return ScoreComponentCollection();
+  }
+
+  /**
+   * Change feature weights.
+   */
   void SetAllWeights(const ScoreComponentCollection& weights) {
+    /*
+     * Before decoding each sentence, ContextScope() retrieves the current feature weights from StaticData.
+     * Therefore, we can safely lock and change the weights here, which affects all subsequent sentences.
+     */
+    boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
     m_allWeights = weights;
   }
 
-  //Weight for a single-valued feature
+  //! DEPRECATED. Use ContextScope::GetFeatureWeights(). Weight for a single-valued feature
   float GetWeight(const FeatureFunction* sp) const {
+    boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
     return m_allWeights.GetScoreForProducer(sp);
   }
 
@@ -221,8 +239,9 @@ public:
   void SetWeight(const FeatureFunction* sp, float weight) ;
 
 
-  //Weights for feature with fixed number of values
+  //! DEPRECATED. Use ContextScope::GetFeatureWeights(). Weights for feature with fixed number of values
   std::vector<float> GetWeights(const FeatureFunction* sp) const {
+    boost::lock_guard<boost::mutex> lock(m_allWeightsMutex);
     return m_allWeights.GetScoresForProducer(sp);
   }
 
@@ -266,74 +285,9 @@ public:
     return m_bookkeeping_options.need_alignment_info;
   }
 
-  bool GetHasAlternateWeightSettings() const {
-    return m_weightSetting.size() > 0;
-  }
-
-  /** Alternate weight settings allow the wholesale ignoring of
-      feature functions. This function checks if a feature function
-      should be evaluated given the current weight setting */
   bool IsFeatureFunctionIgnored( const FeatureFunction &ff ) const {
-    if (!GetHasAlternateWeightSettings()) {
-      return false;
-    }
-    std::map< std::string, std::set< std::string > >::const_iterator lookupIgnoreFF
-    =  m_weightSettingIgnoreFF.find( m_currentWeightSetting );
-    if (lookupIgnoreFF == m_weightSettingIgnoreFF.end()) {
-      return false;
-    }
-    const std::string &ffName = ff.GetScoreProducerDescription();
-    const std::set< std::string > &ignoreFF = lookupIgnoreFF->second;
-    return ignoreFF.count( ffName );
-  }
-
-  /** Alternate weight settings allow the wholesale ignoring of
-      decoding graphs (typically a translation table). This function
-      checks if a feature function should be evaluated given the
-      current weight setting */
-  bool IsDecodingGraphIgnored( const size_t id ) const {
-    if (!GetHasAlternateWeightSettings()) {
-      return false;
-    }
-    std::map< std::string, std::set< size_t > >::const_iterator lookupIgnoreDP
-    =  m_weightSettingIgnoreDP.find( m_currentWeightSetting );
-    if (lookupIgnoreDP == m_weightSettingIgnoreDP.end()) {
-      return false;
-    }
-    const std::set< size_t > &ignoreDP = lookupIgnoreDP->second;
-    return ignoreDP.count( id );
-  }
-
-  /** process alternate weight settings
-    * (specified with [alternate-weight-setting] in config file) */
-  void SetWeightSetting(const std::string &settingName) const {
-
-    // if no change in weight setting, do nothing
-    if (m_currentWeightSetting == settingName) {
-      return;
-    }
-
-    // model must support alternate weight settings
-    if (!GetHasAlternateWeightSettings()) {
-      std::cerr << "Warning: Input specifies weight setting, but model does not support alternate weight settings.";
-      return;
-    }
-
-    // find the setting
-    m_currentWeightSetting = settingName;
-    std::map< std::string, ScoreComponentCollection* >::const_iterator i =
-      m_weightSetting.find( settingName );
-
-    // if not found, resort to default
-    if (i == m_weightSetting.end()) {
-      std::cerr << "Warning: Specified weight setting " << settingName
-                << " does not exist in model, using default weight setting instead";
-      i = m_weightSetting.find( "default" );
-      m_currentWeightSetting = "default";
-    }
-
-    // set weights
-    m_allWeights = *(i->second);
+    // a stub left after removing the horror contraption officially dubbed "alternate weight settings"
+    return false;
   }
 
   float GetWeightWordPenalty() const;
@@ -349,18 +303,16 @@ public:
   void LoadFeatureFunctions();
   bool CheckWeights() const;
   void LoadSparseWeightsFromConfig();
-  bool LoadWeightSettings();
-  bool LoadAlternateWeightSettings();
 
-  std::map<std::string, std::string> OverrideFeatureNames();
+  std::map<std::string, std::string> OverrideFeatureNames() const;
   void OverrideFeatures();
 
   const FeatureRegistry &GetFeatureRegistry() const {
-    return m_registry;
+    return *m_registry;
   }
 
   const PhrasePropertyFactory &GetPhrasePropertyFactory() const {
-    return m_phrasePropertyFactory;
+    return *m_phrasePropertyFactory;
   }
 
   /** check whether we should be using the old code to support binary phrase-table.
@@ -378,8 +330,6 @@ public:
   const std::vector< std::vector<Word> >& GetSoftMatches() const {
     return m_softMatchesMap;
   }
-
-  void ResetWeights(const std::string &denseWeights, const std::string &sparseFile);
 
   // need global access for output of tree structure
   const StatefulFeatureFunction* GetTreeStructure() const {

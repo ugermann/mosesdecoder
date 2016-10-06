@@ -11,6 +11,7 @@
 namespace Moses
 {
 
+class ContextScope;
 class HypothesisStack;
 class Hypothesis;
 class InputType;
@@ -40,6 +41,7 @@ protected:
   Manager& m_manager;
   const InputType &m_source;
   AllOptions const& m_options;
+  const ContextScope *m_contextScope;
 
   InputPath m_inputPath; // for initial hypo
   TranslationOption m_initialTransOpt; /**< used to seed 1st hypo */

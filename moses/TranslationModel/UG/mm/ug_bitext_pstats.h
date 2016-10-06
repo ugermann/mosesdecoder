@@ -42,7 +42,8 @@ namespace sapt
     size_t count_workers() { return in_progress; }
 
     size_t
-    add(uint64_t const  pid, // target phrase id
+    add(pid_type const  pid, // target phrase id
+        phrase<id_type> const& trg, // target phrase
         float const       w, // sample weight (1./(# of phrases extractable))
         float const       b, // sample bias score
         alnvec const&     a, // local alignment
@@ -53,10 +54,12 @@ namespace sapt
     
     void
     count_sample(int const docid,        // document where sample was found
-		 size_t const num_pairs, // # of phrases extractable here
-		 int const po_fwd,       // fwd phrase orientation
-		 int const po_bwd);      // bwd phrase orientation
+                 size_t const num_pairs, // # of phrases extractable here
+                 int const po_fwd,       // fwd phrase orientation
+                 int const po_bwd);      // bwd phrase orientation
     void wait() const;
+    bool operator==(pstats const& other) const;
+    void diff(std::ostream& out, pstats const& other) const;
   };
 
 }

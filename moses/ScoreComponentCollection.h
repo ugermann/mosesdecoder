@@ -89,7 +89,7 @@ class ScoreComponentCollection
   friend std::ostream& operator<<(std::ostream& os, const ScoreComponentCollection& rhs);
   friend void swap(ScoreComponentCollection &first, ScoreComponentCollection &second);
 
-private:
+protected:
   FVector m_scores;
 
 public:
@@ -98,6 +98,7 @@ private:
   // typedef std::map<const FeatureFunction*,IndexPair> ScoreIndexMap;
   // static  ScoreIndexMap s_scoreIndexes;
   static size_t s_denseVectorSize;
+  size_t m_denseVectorSize;
 public:
   // static IndexPair GetIndexes(const FeatureFunction* sp) {
   //   ScoreIndexMap::const_iterator indexIter = s_scoreIndexes.find(sp);
@@ -120,12 +121,18 @@ public:
   //! Create a new score collection with all values set to 0.0
   ScoreComponentCollection();
 
+  //! Create a new score collection of specified size with all values set to 0.0
+  ScoreComponentCollection(size_t denseVectorSize);
+
   //! Clone a score collection
   ScoreComponentCollection(const ScoreComponentCollection& rhs)
     : m_scores(rhs.m_scores) {
   }
 
+  virtual ~ScoreComponentCollection();
+
   ScoreComponentCollection& operator=( const ScoreComponentCollection& rhs ) {
+    m_denseVectorSize = rhs.m_denseVectorSize;
     m_scores = rhs.m_scores;
     return *this;
   }
@@ -141,6 +148,8 @@ public:
     return m_scores.load(filename);
   }
 
+  static ScoreComponentCollection FromWeightMap(const std::map<std::string, std::vector<float> >& weights);
+
   const FVector& GetScoresVector() const {
     return m_scores;
   }
@@ -153,15 +162,12 @@ public:
     return m_scores.size();
   }
 
+  /** Resize to the statically maintained number of registered, dense feature scores. */
   void Resize() {
     if (m_scores.coreSize() != s_denseVectorSize) {
-      m_scores.resize(s_denseVectorSize);
+      m_denseVectorSize = s_denseVectorSize;
+      m_scores.resize(m_denseVectorSize);
     }
-  }
-
-  /** Create and FVector with the right number of core features */
-  static FVector CreateFVector() {
-    return FVector(s_denseVectorSize);
   }
 
   void SetToBinaryOf(const ScoreComponentCollection& rhs) {
@@ -279,6 +285,9 @@ public:
     m_scores[fname] += score;
   }
 
+  //! to get this actual version without the annoying C++ overload ambiguity, use literals as 0u or explicit cast
+  void Assign(size_t index, const std::vector<float>& scores);
+
   void Assign(const FeatureFunction* sp, const std::vector<float>& scores);
 
   //! Special version Assign(ScoreProducer, vector<float>)
@@ -383,6 +392,7 @@ public:
   }
 
   float GetWeightedScore() const;
+  float GetWeightedScore(const ScoreComponentCollection& weights) const;
 
   void ZeroDenseFeatures(const FeatureFunction* sp);
   void InvertDenseFeatures(const FeatureFunction* sp);

@@ -1,15 +1,15 @@
 // -*- mode: c++; indent-tabs-mode: nil; tab-width:2  -*-
 #include "ug_sampling_bias.h"
 #include <iostream>
+#include <utility>
+#include <algorithm>
 #include <boost/foreach.hpp>
 #include "moses/Util.h"
 #ifndef NO_MOSES
 #include "moses/Timer.h"
 #endif
 
-// #ifdef WITH_MMT_BIAS_CLIENT
 #include "ug_http_client.h"
-// #endif
 
 namespace sapt
 {
@@ -91,6 +91,14 @@ namespace sapt
   DocumentBias::
   GetDocumentBiasMap() const {
     return m_bias;
+  }
+
+  void DocumentBias::getRankedBias(std::vector<std::pair<float, id_type> >& bias) const {
+    bias.clear();
+    std::map<id_type, float>::const_iterator it;
+    for(it = m_bias.begin(); it != m_bias.end(); it++)
+      bias.push_back(std::make_pair(it->second, it->first));
+    std::sort(bias.begin(), bias.end(), std::greater<std::pair<float, id_type> >()); // sort descending
   }
 
   void

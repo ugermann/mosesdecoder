@@ -15,7 +15,7 @@ namespace Syntax
 std::vector<RuleTableFF*> RuleTableFF::s_instances;
 
 RuleTableFF::RuleTableFF(const std::string &line)
-  : PhraseDictionary(line, true)
+  : PhraseDictionary(line)
 {
   ReadParameters();
   // caching for memory pt is pointless

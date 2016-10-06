@@ -69,8 +69,8 @@ int main(int argc, char* argv[])
   Bitext<Token>::iter& m = m1.size() ? m1 : m2;
   char const* x = m.lower_bound(-1);
   char const* stop = m.upper_bound(-1);
-  uint64_t sid;
-  ushort off;
+  tpt::id_type sid;
+  tpt::offset_type off;
   boost::taus88 rnd;
   size_t N = m.approxOccurrenceCount();
   maxhits = min(N, maxhits);

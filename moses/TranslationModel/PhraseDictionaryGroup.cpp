@@ -31,7 +31,7 @@ namespace Moses
 {
 
 PhraseDictionaryGroup::PhraseDictionaryGroup(const string &line)
-  : PhraseDictionary(line, true),
+  : PhraseDictionary(line),
     m_numModels(0),
     m_totalModelScores(0),
     m_phraseCounts(false),

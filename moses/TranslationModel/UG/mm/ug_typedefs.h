@@ -29,8 +29,16 @@ namespace sapt
   typedef std::vector<int_3d_table>      int_4d_table;
 
   typedef tpt::id_type id_type;
+  typedef tpt::offset_type offset_type;
   typedef tpt::uchar uchar;
   typedef tpt::filepos_type filepos_type;
+
+  typedef uint64_t pid_type; // hash key for phrase
+
+
+  // maybe this should go into ug_corpus_token.h? ... should ug_bitext_jstats.h have to include that?
+  // or ug_ttrack_base.h?
+
 }
 
 #ifndef SPTR

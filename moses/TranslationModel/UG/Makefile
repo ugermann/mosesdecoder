@@ -35,7 +35,6 @@ CXXFLAGS += -DMAX_NUM_FACTORS=4
 CXXFLAGS += -DKENLM_MAX_ORDER=5
 CXXFLAGS += -DWITH_THREADS
 CXXFLAGS += -DNO_MOSES
-CXXFLAGS += -DMMT
 CXXFLAGS += -I$(dir ${MOSES_ROOT})mmt-only
 CXXFLAGS += -I${MOSES_ROOT} -I. -I${MOSES_ROOT}/opt/include 
 
@@ -118,6 +117,7 @@ skip += ug_splice_arglist.cc
 # objects from elsewhere in the moses tree that are needed
 extra  = ${MOSES_ROOT}/util/exception.cc 
 extra += ${MOSES_ROOT}/util/integer_to_string.cc
+extra += ${MOSES_ROOT}/util/murmur_hash.cc
 
 $(foreach f,$(skip),$(eval broken+=$(shell find -name $f)))
 broken += $(wildcard ./mm/stashed/*)

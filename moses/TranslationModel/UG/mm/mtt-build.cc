@@ -39,11 +39,13 @@ namespace po=boost::program_options;
 int with_pfas;
 int with_dcas;
 int with_sfas;
+int with_global_index;
 
 bool incremental = false; // build / grow vocabs automatically
 bool is_conll    = false; // text or conll format?
 bool quiet       = false; // no progress reporting
 
+string docMap; // optional document map name
 string vocabBase; // base name for existing vocabs that should be used
 string baseName;  // base name for all files
 string tmpFile, mttFile;   /* name of temporary / actual track file
@@ -51,12 +53,19 @@ string tmpFile, mttFile;   /* name of temporary / actual track file
 			    */
 string UNK;
 
+id_type idxSize=0; // total index size (number of input sentences = lines)
+
+// document map
+vector<string> docnames;
+vector<pair<id_type, id_type> > ranges;
+
 TokenIndex SF; // surface form
 TokenIndex LM; // lemma
 TokenIndex PS; // part of speech
 TokenIndex DT; // dependency type
 
 void interpret_args(int ac, char* av[]);
+void load_document_map(string const& fname, vector<string> &docnames, vector<pair<id_type, id_type> > &ranges);
 
 inline uchar rangeCheck(int p, int limit) { return p < limit ? p : 1; }
 
@@ -126,6 +135,8 @@ void init(int argc, char* argv[])
       open_vocab(DT, vocabBase+".tdx.drl"); // dependency type
     }
   else open_vocab(SF, vocabBase+".tdx"); // surface form
+
+  load_document_map(docMap, docnames, ranges);
 }
 
 void fill_rec(Conll_Record& rec, vector<string> const& w)
@@ -225,7 +236,9 @@ numberize()
 {
   ofstream out(tmpFile.c_str());
   filepos_type startIdx=0;
-  id_type idxSize=0,totalWords=0;
+  id_type totalWords=0;
+  idxSize=0;
+  tpt::numwrite(out,tpt::INDEX_V2_MAGIC);
   tpt::numwrite(out,startIdx);   // place holder, to be filled at the end
   tpt::numwrite(out,idxSize);    // place holder, to be filled at the end
   tpt::numwrite(out,totalWords); // place holder, to be filled at the end
@@ -252,6 +265,7 @@ numberize()
     tpt::numwrite(out,(*index)[i]);
   out.seekp(0);
   idxSize = index->size();
+  tpt::numwrite(out,tpt::INDEX_V2_MAGIC);
   tpt::numwrite(out, startIdx);
   tpt::numwrite(out, idxSize - 1);
   tpt::numwrite(out, totalWords);
@@ -290,8 +304,10 @@ void remap()
   if (!quiet) cerr << "Remapping ids ... ";
   filepos_type idxOffset;
   id_type totalWords, idxSize;
+  uint64_t versionMagic;
   boost::iostreams::mapped_file mtt(tmpFile);
   char const* p = mtt.data();
+  p = tpt::numread(p,versionMagic);
   p = tpt::numread(p,idxOffset);
   p = tpt::numread(p,idxSize);
   p = tpt::numread(p,totalWords);
@@ -358,18 +374,71 @@ void save_vocabs()
     write_tokenindex(vbase+".tdx",SF,smap);
 }
 
+void
+load_document_map(string const& fname, vector<string> &docnames, vector<pair<id_type, id_type> > &ranges) {
+  // check if we can load document map
+  std::string docmapfile = docMap; // = baseName+".dmp";
+
+  if (access(docMap.c_str(),F_OK)) {
+    if (docmapfile != "") {
+      cerr << "While loading docmap: " << docmapfile << ": no such file." << endl;
+      exit(1);
+    }
+    // no docmap to load since no option given
+    return;
+  }
+
+  std::ifstream docmap(fname.c_str());
+  // the docmap file should list the documents in the corpus
+  // in the order in which they appear with one line per document:
+  // <docname> <number of lines / sentences>
+  //
+  // in the future, we might also allow listing documents with
+  // sentence ranges.
+  std::string buffer,docname; size_t a=0,b;
+  while(getline(docmap,buffer))
+  {
+    std::istringstream line(buffer);
+    if (!(line>>docname)) continue; // empty line
+    if (docname.size() && docname[0] == '#') continue; // comment
+    docnames.push_back(docname);
+    line >> b;
+    b += a;
+    ranges.push_back(make_pair(a, b)); // range [a,b)
+    a = b;
+  }
+}
+
 template<typename Token>
 void
-build_mmTSA(string infile, string outfile)
+build_mmTSA(string infile, string fileSuffix)
 {
-  // size_t mypid = fork();
-  // if(mypid) return mypid;
   boost::shared_ptr<mmTtrack<Token> > T(new mmTtrack<Token>(infile));
   bdBitset filter;
-  filter.resize(T->size(),true);
-  imTSA<Token> S(T,&filter,(quiet?NULL:&cerr));
-  S.save_as_mm_tsa(outfile);
-  // exit(0);
+
+  filter.resize(T->size(), false);
+
+  if(with_global_index)
+  {
+    // for building a single global index -> default to "model.sfa" style filename
+    docnames.push_back("");
+    ranges.push_back(make_pair(0, idxSize));
+  }
+
+  vector<string>::iterator d = docnames.begin();
+  vector<pair<id_type, id_type> >::iterator r = ranges.begin();
+  for(; d != docnames.end() && r != ranges.end(); d++, r++)
+  {
+    // choose the range to index
+    filter.reset();
+    for(id_type i = r->first; i < r->second; i++)
+      filter.set(i, true);
+
+    // build the index
+    imTSA<Token> S(T,&filter,(quiet?NULL:&cerr));
+    string filename = d->length() ? baseName + "." + *d + fileSuffix : baseName + fileSuffix;
+    S.save_as_mm_tsa(filename);
+  }
 }
 
 bool
@@ -378,36 +447,35 @@ build_plaintext_tsas()
   typedef L2R_Token<SimpleWordId> L2R;
   typedef R2L_Token<SimpleWordId> R2L;
   // size_t c = with_sfas + with_pfas;
-  if (with_sfas) build_mmTSA<L2R>(tmpFile, baseName + ".sfa");
-  if (with_pfas) build_mmTSA<R2L>(tmpFile, baseName + ".pfa");
+  if (with_sfas) build_mmTSA<L2R>(tmpFile, ".sfa");
+  if (with_pfas) build_mmTSA<R2L>(tmpFile, ".pfa");
   // while (c--) wait(NULL);
   return true;
 }
 
 void build_conll_tsas()
 {
-  string bn  = baseName;
   string mtt = tmpFile;
-  size_t c = 3 * (with_sfas + with_pfas + with_dcas);
+  // size_t c = 3 * (with_sfas + with_pfas + with_dcas);
   if (with_sfas)
     {
-      build_mmTSA<L2R_Token<Conll_Sform> >(mtt,bn+".sfa-sform");
-      build_mmTSA<L2R_Token<Conll_Lemma> >(mtt,bn+".sfa-lemma");
-      build_mmTSA<L2R_Token<Conll_MinPos> >(mtt,bn+".sfa-minpos");
+      build_mmTSA<L2R_Token<Conll_Sform> >(mtt, ".sfa-sform");
+      build_mmTSA<L2R_Token<Conll_Lemma> >(mtt, ".sfa-lemma");
+      build_mmTSA<L2R_Token<Conll_MinPos> >(mtt, ".sfa-minpos");
     }
 
   if (with_pfas)
     {
-      build_mmTSA<R2L_Token<Conll_Sform> >(mtt,bn+".pfa-sform");
-      build_mmTSA<R2L_Token<Conll_Lemma> >(mtt,bn+".pfa-lemma");
-      build_mmTSA<R2L_Token<Conll_MinPos> >(mtt,bn+".pfa-minpos");
+      build_mmTSA<R2L_Token<Conll_Sform> >(mtt, ".pfa-sform");
+      build_mmTSA<R2L_Token<Conll_Lemma> >(mtt, ".pfa-lemma");
+      build_mmTSA<R2L_Token<Conll_MinPos> >(mtt, ".pfa-minpos");
     }
 
   if (with_dcas)
     {
-      build_mmTSA<ConllBottomUpToken<Conll_Sform> >(mtt,bn+".dca-sform");
-      build_mmTSA<ConllBottomUpToken<Conll_Lemma> >(mtt,bn+".dca-lemma");
-      build_mmTSA<ConllBottomUpToken<Conll_MinPos> >(mtt,bn+".dca-minpos");
+      build_mmTSA<ConllBottomUpToken<Conll_Sform> >(mtt, ".dca-sform");
+      build_mmTSA<ConllBottomUpToken<Conll_Lemma> >(mtt, ".dca-lemma");
+      build_mmTSA<ConllBottomUpToken<Conll_MinPos> >(mtt, ".dca-minpos");
     }
   // while (c--) wait(NULL);
 }
@@ -459,6 +527,14 @@ interpret_args(int ac, char* av[])
      ->default_value(0)->implicit_value(1),
      "also build prefix arrays")
 
+    ("doc-map,m", po::value<string>(&docMap)
+       ->default_value(""),
+     "use a document map and build separate indices")
+
+    ("global-index,g", po::value<int>(&with_global_index)
+       ->default_value(0)->implicit_value(1),
+     "build a global index (default without --doc-map)")
+
     ("dca,d", po::value<int>(&with_dcas)
      ->default_value(0)->implicit_value(1),
      "also build dependency chain arrays")
@@ -495,4 +571,8 @@ interpret_args(int ac, char* av[])
     }
   mttFile = baseName + (is_conll ? ".mtt" : ".mct");
   tmpFile = mttFile + "_";
+
+  // default without docmap: build global index
+  if(docMap.length() == 0 && !with_global_index)
+    with_global_index = 1;
 }

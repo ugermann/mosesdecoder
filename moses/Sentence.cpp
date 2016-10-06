@@ -107,13 +107,6 @@ aux_interpret_sgml_markup(string& line)
       this->SetUseTopicIdAndProb(true);
     }
   }
-  if ((i = meta.find("weight-setting")) != meta.end()) {
-    this->SetWeightSetting(i->second);
-    this->SetSpecifiesWeightSetting(true);
-    StaticData::Instance().SetWeightSetting(i->second);
-    // oh this is so horrible! Why does this have to be propagated globally?
-    // --- UG
-  } else this->SetSpecifiesWeightSetting(false);
 }
 
 void
@@ -174,7 +167,7 @@ init(string line)
   line = Trim(line);
   aux_interpret_sgml_markup(line); // for "<seg id=..." markup
   aux_interpret_dlt(line); // some poorly documented cache-based stuff
-
+VERBOSE(3,"Sentence::init(string line, std::vector<FactorType> const& factorOrder) line:|" << line << "|" << std::endl);
   // if sentences is specified as "<passthrough tag1=""/>"
   if (m_options->output.PrintPassThrough ||m_options->nbest.include_passthrough) {
     string pthru = PassthroughSGML(line,"passthrough");
@@ -221,6 +214,7 @@ init(string line)
       m_reorderingConstraint.SetWall(xmlWalls[i], true);
   m_reorderingConstraint.FinalizeWalls();
 
+VERBOSE(3,"Sentence::init(string line, std::vector<FactorType> const& factorOrder) END" << std::endl);
 }
 
 int

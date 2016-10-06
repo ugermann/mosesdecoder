@@ -78,8 +78,8 @@ namespace sapt
 {
   using Moses::ttasksptr;
   using Moses::ttaskwptr;
-  using tpt::binread;
-  using tpt::binwrite;
+  using tpt::numread;
+  using tpt::numwrite;
 
   float lbop(size_t const tries, size_t const succ, float const confidence);
   void write_bitvector(bitvector const& v, std::ostream& out);
@@ -109,7 +109,6 @@ namespace sapt
     typedef TKN Token;
     typedef typename TSA<Token>::tree_iterator   iter;
     typedef typename std::vector<PhrasePair<Token> > vec_ppair;
-    typedef typename lru_cache::LRU_Cache<uint64_t, vec_ppair> pplist_cache_t;
     typedef TSA<Token> tsa;
     friend class Moses::Mmsapt;
   protected:
@@ -121,15 +120,11 @@ namespace sapt
 
     size_t m_default_sample_size;
     size_t m_pstats_cache_threshold; // threshold for caching sampling results
-    SPTR<pstats::cache_t> m_cache1, m_cache2; // caches for sampling results
+    SPTR<pstats::cache_t> m_cache1, m_cache2; // caches for sampling results (only ever used for dyn bitext -David)
 
     std::vector<std::string> m_docname;
     std::map<std::string,id_type>  m_docname2docid; // maps from doc names to ids
     SPTR<std::vector<id_type> >   m_sid2docid; // maps from sentences to docs (ids)
-
-    mutable pplist_cache_t m_pplist_cache1, m_pplist_cache2;
-    // caches for unbiased sampling; biased sampling uses the caches that
-    // are stored locally on the translation task
 
   public:
     SPTR<Ttrack<char> >  Tx; // word alignments
@@ -159,10 +154,12 @@ namespace sapt
 
     // prep2 launches sampling and returns immediately.
     // lookup (below) waits for the job to finish before it returns
+    // (only ever used for dyn bitext -David)
     SPTR<pstats>
     prep2(iter const& phrase, int max_sample = -1) const;
 
 #ifndef NO_MOSES
+    // (only ever used for dyn bitext -David)
     SPTR<pstats>
     prep2(ttasksptr const& ttask, iter const& phrase, int max_sample = -1) const;
 #endif 
@@ -183,12 +180,14 @@ namespace sapt
     SPTR<pstats> 
     lookup(iter const& phrase, int max_sample = -1) const;
 
+    // (only ever used for dyn bitext -David)
     void prep(iter const& phrase) const;
 
 #ifndef NO_MOSES
     SPTR<pstats>
     lookup(ttasksptr const& ttask, iter const& phrase, int max_sample = -1) const;
 
+    // (only ever used for dyn bitext -David)
     void prep(ttasksptr const& ttask, iter const& phrase) const;
 #endif
 
@@ -223,6 +222,8 @@ namespace sapt
     
     std::vector<id_type> const* sid2did() const;
     int sid2did(uint32_t sid) const;
+
+    id_type domainCount() const;
   };
 
   #include "ug_bitext_agenda.h"
@@ -276,6 +277,14 @@ namespace sapt
     if (m_sid2docid) 
       return m_sid2docid->at(sid);
     return -1;
+  }
+
+  template<typename Token>
+  id_type
+  Bitext<Token>::
+  domainCount() const
+  {
+    return m_docname.size();
   }
 
 
@@ -435,6 +444,7 @@ namespace sapt
           full_alignment->resize(slen1*slen2*2);
         full_alignment->reset();
       }
+    offset_type s,t;
     size_t src,trg;
     size_t lft = forbidden.size();
     size_t rgt = 0;
@@ -447,15 +457,15 @@ namespace sapt
       {
         if (flip) 
           { 
-            p = binread(p,trg); 
+            p = numread(p,t); trg=t;
             assert(p<x); 
-            p = binread(p,src); 
+            p = numread(p,s); src=s;
           }
         else 
           { 
-            p = binread(p,src); 
+            p = numread(p,s); src=s;
             assert(p<x); 
-            p = binread(p,trg); 
+            p = numread(p,t); trg=t;
           }
 	  
         UTIL_THROW_IF2((src >= slen1 || trg >= slen2),
@@ -513,6 +523,11 @@ namespace sapt
     SPTR<DocumentBias> ret;
     UTIL_THROW_IF2(m_sid2docid == NULL,
                    "Document bias requested but no document map loaded.");
+
+    if (m_docname2docid.size() == 1) 
+      // a document bias make no sense if this corpus is single-doc
+      return ret;
+
     ret.reset(new DocumentBias(*m_sid2docid, m_docname2docid,
                                bserver, text, log));
     return ret;
@@ -527,6 +542,11 @@ namespace sapt
     SPTR<DocumentBias> ret;
     UTIL_THROW_IF2(m_sid2docid == NULL,
                    "Document bias requested but no document map loaded.");
+
+    if (m_docname2docid.size() == 1) 
+      // a document bias make no sense if this corpus is single-doc
+      return ret;
+    
     ret.reset(new DocumentBias(*m_sid2docid, m_docname2docid,
                                context_weights, log));
     return ret;
@@ -541,7 +561,8 @@ namespace sapt
   }
 
 
-
+  // (only ever used for dyn bitext -David)
+  //
   // prep2 schedules a phrase for sampling, and returns immediately
   // the member function lookup retrieves the respective pstats instance
   // and waits until the sampling is finished before it returns.
@@ -695,11 +716,11 @@ namespace sapt
     ag.first.resize(a1.size());
     ag.second.resize(a2.size());
     char const* x = Tx->sntStart(sid);
-    size_t a, b;
+    offset_type a, b;
     while (x < Tx->sntEnd(sid))
       {
-        x = binread(x,a);
-        x = binread(x,b);
+        x = numread(x,a);
+        x = numread(x,b);
         if (a1.at(a) < 0 && a2.at(b) < 0)
           {
             a1[a] = a2[b] = agroups.size();
@@ -754,23 +775,19 @@ namespace sapt
 
   template<typename Token>
   void
-  expand(typename Bitext<Token>::iter const& m,
+  expand(pid_type pid,
+         phrase<Token> src,
+         bool fwd,
          Bitext<Token> const& bt, pstats const& ps,
          std::vector<PhrasePair<Token> >& dest, std::ostream* log)
   {
-    bool fwd = m.root == bt.I1.get();
     dest.reserve(ps.trg.size());
     PhrasePair<Token> pp;
-    pp.init(m.getPid(), !fwd, m.getToken(0), m.size(), &ps, 0);
-    // cout << HERE << " "
-    // << toString(*(fwd ? bt.V1 : bt.V2), pp.start1,pp.len1) << std::endl;
+    pp.init(pid, !fwd, src.begin, src.len, &ps, 0);
     pstats::trg_map_t::const_iterator a;
     for (a = ps.trg.begin(); a != ps.trg.end(); ++a)
       {
-        uint32_t sid,off,len;
-        parse_pid(a->first, sid, off, len);
-        pp.update(a->first, (fwd ? bt.T2 : bt.T1)->sntStart(sid)+off,
-                  len, a->second);
+        pp.update(a->first, a->second);
         dest.push_back(pp);
       }
   }

@@ -39,27 +39,27 @@ namespace Moses
     std::pair<cache_t::iterator, bool> foo = m_cache.insert(e);
     SPTR<TPCollWrapper>& ret = foo.first->second;
     if (ret && m_cache.size() > 1 && m_qlast != foo.first)
-      {
-	if (m_qfirst == foo.first) m_qfirst = ret->next;
-	else ret->prev->second->next = ret->next;
-	if (m_qlast != foo.first)
-	  ret->next->second->prev = ret->prev;
-      }
+    {
+      if (m_qfirst == foo.first) m_qfirst = ret->next;
+      else ret->prev->second->next = ret->next;
+      if (m_qlast != foo.first)
+        ret->next->second->prev = ret->prev;
+    }
     if (!ret || ret->revision != revision)
-      {
-	ret.reset(new TPCollWrapper(key,revision));
-      }
-    if (m_cache.size() == 1) 
-      {
-	m_qfirst = m_qlast = foo.first;
-	ret->prev = m_cache.end();
-      }
+    {
+      ret.reset(new TPCollWrapper(key,revision));
+    }
+    if (m_cache.size() == 1)
+    {
+      m_qfirst = m_qlast = foo.first;
+      ret->prev = m_cache.end();
+    }
     else if (m_qlast != foo.first)
-      {
-	ret->prev = m_qlast;
-	m_qlast->second->next = foo.first;
-	m_qlast = foo.first;
-      }
+    {
+      ret->prev = m_qlast;
+      m_qlast->second->next = foo.first;
+      m_qlast = foo.first;
+    }
     ret->next = m_cache.end();
 
 #if 0
@@ -79,18 +79,18 @@ namespace Moses
 #endif
 
     if (m_cache.size() > m_capacity)
+    {
+      // size_t ctr = 0;
+      // size_t oldsize = m_cache.size();
+      while (m_cache.size() > m_capacity && m_qfirst->second.use_count() == 1)
       {
-	// size_t ctr = 0;
-	// size_t oldsize = m_cache.size();
-	while (m_cache.size() > m_capacity && m_qfirst->second.use_count() == 1)
-	  {
-	    m_qfirst = m_qfirst->second->next;
-	    // std::cerr << "erasing " << ++ctr << "/" << m_cache.size() << " " 
-	    // << m_qfirst->second->key << std::endl;
-	    m_cache.erase(m_qfirst->second->prev);
-	  }
-	// if (oldsize > m_cache.size()) std::cerr << "\n" << std::endl;
+        m_qfirst = m_qfirst->second->next;
+        // std::cerr << "erasing " << ++ctr << "/" << m_cache.size() << " "
+        // << m_qfirst->second->key << std::endl;
+        m_cache.erase(m_qfirst->second->prev);
       }
+      // if (oldsize > m_cache.size()) std::cerr << "\n" << std::endl;
+    }
     return ret;
   } // TPCollCache::get(...)
   

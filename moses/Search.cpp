@@ -12,7 +12,7 @@ Search::Search(Manager& manager)
   , m_source(manager.GetSource())
   , m_options(*manager.options())
   , m_inputPath()
-  , m_initialTransOpt()
+  , m_initialTransOpt(manager.GetTtask())
   , m_bitmaps(manager.GetSource().GetSize(), manager.GetSource().m_sourceCompleted)
   , interrupted_flag(0)
 {

@@ -29,7 +29,7 @@ namespace Moses
 
 PhraseDictionaryMultiModel::
 PhraseDictionaryMultiModel(const std::string &line)
-  : PhraseDictionary(line, true)
+  : PhraseDictionary(line)
 {
   ReadParameters();
 
@@ -49,7 +49,7 @@ PhraseDictionaryMultiModel(const std::string &line)
 
 PhraseDictionaryMultiModel::
 PhraseDictionaryMultiModel(int type, const std::string &line)
-  :PhraseDictionary(line, true)
+  :PhraseDictionary(line)
 {
   if (type == 1) {
     // PhraseDictionaryMultiModelCounts

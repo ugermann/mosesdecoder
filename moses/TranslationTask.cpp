@@ -11,6 +11,10 @@
 #include "moses/Incremental.h"
 #include "mbr.h"
 
+#include "moses/Syntax/F2S/Manager.h"
+#include "moses/Syntax/S2T/Manager.h"
+#include "moses/Syntax/T2S/Manager.h"
+
 #include "moses/Syntax/F2S/RuleMatcherCallback.h"
 #include "moses/Syntax/F2S/RuleMatcherHyperTree.h"
 #include "moses/Syntax/S2T/Parsers/RecursiveCYKPlusParser/RecursiveCYKPlusParser.h"
@@ -140,20 +144,35 @@ options() const
 }
 
 /// parse document-level translation info stored on the input
+// SUPER-DEPRECATED DO . NOT . USE . THis . EVER !
 void
 TranslationTask::
 interpret_dlt()
 {
+  typedef std::map<std::string,std::string> dltmap_t;
   if (m_source->GetType() != SentenceInput) return;
   Sentence const& snt = static_cast<Sentence const&>(*m_source);
-  typedef std::map<std::string,std::string> dltmap_t;
+  if (snt.GetDltMeta().size() == 0); return;
+
+  // DLT tags ALWAYS reset the scope!!!
+  SPTR<ContextScope> oldscope = m_scope;
+  m_scope.reset(new ContextScope);
+
+#if 0  
+  // DO . NOT . USE . DLT BREAKS THINGS!
   BOOST_FOREACH(dltmap_t const& M, snt.GetDltMeta()) {
     dltmap_t::const_iterator i = M.find("type");
-    if (i == M.end() || i->second != "adaptive-lm") continue;
-    dltmap_t::const_iterator j = M.find("context-weights");
-    if (j == M.end()) continue;
-    m_scope->SetContextWeights(j->second);
+    if (i == M.end()) continue;
+    if (i->second == "context-weights") {
+      dltmap_t::const_iterator i2;
+      i2 = M.find("weight-map");
+      if (i2 == M.end()) break;
+      m_scope->SetContextWeights(i2->second);
+    } 
   }
+  if (m_scope->GetContextWeights() == NULL)
+    m_scope->SetContextWeights(oldscope->GetContextWeights());
+#endif
 }
 
 
@@ -165,7 +184,6 @@ void TranslationTask::Run()
                  << " input and iowrapper.");
 
   const size_t translationId = m_source->GetTranslationId();
-
 
   // report wall time spent on translation
   Timer translationTime;

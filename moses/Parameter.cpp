@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "util/string_stream.hh"
 #include "util/exception.hh"
 #include "util/random.hh"
+#include "FF/Factory.h"
 #include <boost/program_options.hpp>
 
 #ifdef HAVE_XMLRPC_C
@@ -161,7 +162,6 @@ Parameter::Parameter()
   AddParam(input_opts,"xml-input", "xi", "allows markup of input with desired translations and probabilities. values can be 'pass-through' (default), 'inclusive', 'exclusive', 'constraint', 'ignore'");
   AddParam(input_opts,"xml-brackets", "xb", "specify strings to be used as xml tags opening and closing, e.g. \"{{ }}\" (default \"< >\"). Avoid square brackets because of configuration file format. Valid only with text input mode" );
   AddParam(input_opts,"start-translation-id", "Id of 1st input. Default = 0");
-  AddParam(input_opts,"alternate-weight-setting", "aws", "alternate set of weights to used per xml specification");
 
   ///////////////////////////////////////////////////////////////////////////////////////
   // output options
@@ -269,9 +269,11 @@ Parameter::Parameter()
   AddParam(misc_opts,"feature", "All the feature functions should be here");
   AddParam(misc_opts,"context-string",
            "A (tokenized) string containing context words for context-sensitive translation.");
-  AddParam(misc_opts,"context-weights", "A key-value map for context-sensitive translation.");
+  AddParam(misc_opts,"context-weights", "A key-value map of weights for context-sensitive translation (e.g., for Mmsapt).");
+  AddParam(misc_opts,"lm-interpolation-weights", "A key-value map for dynamic LM interpolation (via IRSTLM).");
   AddParam(misc_opts,"context-window",
            "Context window (in words) for context-sensitive translation: {+|-|+-}<number>.");
+  AddParam(misc_opts,"muxlm", "Multiplexed language model features should be in this section (see MUXLM).");
 
   // Compact phrase table and reordering table.
   po::options_description cpt_opts("Options when using compact phrase and reordering tables.");
@@ -470,13 +472,7 @@ void show_version()
             << major << "." << minor << "." << point << std::endl;
 #endif
 #ifdef HAVE_CMPH
-  // there's no easy way to determine the cmph version at compile time
-  std::cout << "       CMPH (version unknown)" << std::endl;
-#endif
-
-#ifdef MMT_VERSION_ID
-  std::cout << string(20,'-')
-            << "\nMMT extras version: " << MMT_VERSION_ID << std::endl;
+  std::cout << "       CMPH  version " << CMPH_VERSION << std::endl;
 #endif
 }
 

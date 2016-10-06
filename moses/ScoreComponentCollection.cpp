@@ -55,9 +55,17 @@ size_t ScoreComponentCollection::s_denseVectorSize = 0;
 
 ScoreComponentCollection::
 ScoreComponentCollection()
-  : m_scores(s_denseVectorSize)
+  : m_scores(s_denseVectorSize), m_denseVectorSize(s_denseVectorSize)
 {}
 
+ScoreComponentCollection::
+ScoreComponentCollection(size_t denseVectorSize)
+    : m_scores(denseVectorSize), m_denseVectorSize(denseVectorSize)
+{}
+
+ScoreComponentCollection::
+~ScoreComponentCollection()
+{}
 
 void
 ScoreComponentCollection::
@@ -72,11 +80,45 @@ RegisterScoreProducer(FeatureFunction* scoreProducer)
 }
 
 
+ScoreComponentCollection
+ScoreComponentCollection::
+FromWeightMap(const std::map<std::string, std::vector<float> >& weights)
+{
+  ScoreComponentCollection scc;
+  std::vector<FeatureFunction*>::const_iterator ff;
+  const std::vector<FeatureFunction*>& ffs = FeatureFunction::GetFeatureFunctions();
+  for(ff = ffs.begin(); ff != ffs.end(); ++ff) {
+    if((*ff)->GetNumScoreComponents() == 0)
+      continue;
+    if(!(*ff)->IsTuneable()) {
+      scc.Assign(*ff, (*ff)->DefaultWeights());
+      continue;
+    }
+    const std::string &featureName = (*ff)->GetScoreProducerDescription();
+    std::map<std::string, std::vector<float> >::const_iterator entry = weights.find(featureName);
+    UTIL_THROW_IF2(entry == weights.end(), "ScoreComponentCollection::FromWeightMap(): missing feature weight(s) for " << featureName);
+    scc.Assign(*ff, entry->second);
+  }
+  return scc;
+}
+
+
 float
 ScoreComponentCollection::
 GetWeightedScore() const
 {
-  return m_scores.inner_product(StaticData::Instance().GetAllWeights().m_scores);
+  UTIL_THROW2("ScoreComponentCollection::GetWeightedScore() is no longer supported. Pass weights to GetWeightedScore(weights)");
+  return 0.0;
+  //UTIL_THROW_IF2(m_scores.coreSize() != StaticData::Instance().GetAllWeights().m_scores.coreSize(), m_scores.coreSize() << " != " << StaticData::Instance().GetAllWeights().m_scores.coreSize());
+  //return m_scores.inner_product(StaticData::Instance().GetAllWeights().m_scores);
+}
+
+float
+ScoreComponentCollection::
+GetWeightedScore(const ScoreComponentCollection& weights) const
+{
+  UTIL_THROW_IF2(m_scores.coreSize() != weights.m_scores.coreSize(), m_scores.coreSize() << " != " << weights.m_scores.coreSize());
+  return m_scores.inner_product(weights.m_scores);
 }
 
 void ScoreComponentCollection::MultiplyEquals(float scalar)
@@ -257,6 +299,16 @@ Assign(const FeatureFunction* sp, const std::vector<float>& scores)
   }
 }
 
+void
+ScoreComponentCollection::
+Assign(size_t index, const std::vector<float>& scores)
+{
+  assert(index + scores.size() <= m_denseVectorSize);
+  for (size_t i = 0; i < scores.size(); ++i) {
+    m_scores[i + index] = scores[i];
+  }
+}
+
 
 void ScoreComponentCollection::InvertDenseFeatures(const FeatureFunction* sp)
 {
@@ -284,7 +336,7 @@ FVector
 ScoreComponentCollection::
 GetVectorForProducer(const FeatureFunction* sp) const
 {
-  FVector fv(s_denseVectorSize);
+  FVector fv(m_denseVectorSize);
   std::string prefix = sp->GetScoreProducerDescription() + FName::SEP;
   for(FVector::FNVmap::const_iterator i = m_scores.cbegin(); i != m_scores.cend(); i++) {
     std::stringstream name;

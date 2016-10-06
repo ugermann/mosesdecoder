@@ -32,11 +32,13 @@ using namespace std;
 namespace Moses
 {
 
-TranslationOption::TranslationOption()
-  :m_targetPhrase(NULL)
+TranslationOption::TranslationOption(const ttasksptr &ttask)
+  :m_targetPhrase(ttask, NULL)
   ,m_inputPath(NULL)
   ,m_sourceWordsRange(NOT_FOUND, NOT_FOUND)
-{ }
+{
+  // note: passing ttask into empty m_targetPhrase currently just for feature weights
+}
 
 //TODO this should be a factory function!
 TranslationOption::TranslationOption(const Range &range

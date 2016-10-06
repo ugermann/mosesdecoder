@@ -127,10 +127,10 @@ namespace ugdiss
   {
     std::vector<float> p1(e1,0), p2(e2,0);
     std::vector<int>   c1(e1,0), c2(e2,0);
-    size_t i1=0,i2=0;
+    tpt::offset_type i1=0,i2=0;
     for (char const* x = aln_start; x < aln_end;)
       {
-	x = binread(binread(x,i1),i2);
+	x = numread(numread(x,i1),i2);
 	// assert(snt1[i2].id() < L1_given_L2.size());
 	// assert(snt2[i2].id() < L2_given_L1.size());
 	if (i1 < s1 || i1 >= e1 || i2 < s2 || i2 >= e2) continue;

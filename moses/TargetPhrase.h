@@ -80,21 +80,18 @@ private:
   mutable boost::unordered_map<const std::string, boost::shared_ptr<void> > m_data;
 
 public:
-  TargetPhrase(const PhraseDictionary *pt = NULL);
-  TargetPhrase(std::string out_string, const PhraseDictionary *pt = NULL);
   TargetPhrase(const TargetPhrase &copy);
-  explicit TargetPhrase(const Phrase &targetPhrase, const PhraseDictionary *pt);
-
-  /*ttasksptr version*/
-  TargetPhrase(ttasksptr &ttask, const PhraseDictionary *pt = NULL);
-  TargetPhrase(ttasksptr &ttask, std::string out_string, const PhraseDictionary *pt = NULL);
-  explicit TargetPhrase(ttasksptr &ttask, const Phrase &targetPhrase, const PhraseDictionary *pt);
+  /* ttasksptr version. Note: some legacy code like PhraseDictionaryDynamicCacheBased passes NULL here, but that breaks dynamic feature weight changes at runtime. */
+  TargetPhrase(const ttasksptr &ttask, const PhraseDictionary *pt = NULL);
+  TargetPhrase(const ttasksptr &ttask, std::string out_string, const PhraseDictionary *pt = NULL);
+  explicit TargetPhrase(const ttasksptr &ttask, const Phrase &targetPhrase, const PhraseDictionary *pt);
 
   // ttasksptr GetTtask() const;
   // bool HasTtaskSPtr() const;
 
   bool HasScope() const;
   SPTR<ContextScope> GetScope() const;
+  void SetScope(const SPTR<ContextScope> &scope);
 
   ~TargetPhrase();
 

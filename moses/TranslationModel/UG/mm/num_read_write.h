@@ -11,10 +11,12 @@
 
 namespace tpt {
 
+  void numwrite(std::ostream& out, uint8_t const& x);
   void numwrite(std::ostream& out, uint16_t const& x);
   void numwrite(std::ostream& out, uint32_t const& x);
   void numwrite(std::ostream& out, uint64_t const& x);
 
+  char const* numread(char const* src, uint8_t & x);
   char const* numread(char const* src, uint16_t & x);
   char const* numread(char const* src, uint32_t & x);
   char const* numread(char const* src, uint64_t & x);

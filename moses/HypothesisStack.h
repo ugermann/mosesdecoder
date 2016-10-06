@@ -37,6 +37,9 @@ public:
   size_t size() const {
     return m_hypos.size();
   }
+  const Manager& GetManager() const {
+    return m_manager;
+  }
   virtual inline float GetWorstScore() const {
     return -std::numeric_limits<float>::infinity();
   };

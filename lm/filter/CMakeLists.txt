@@ -29,14 +29,12 @@ set(KENLM_FILTER_SOURCE
 		${CMAKE_CURRENT_SOURCE_DIR}/vocab.cc
 	)
 
-
 # Group these objects together for later use. 
 #
 # Given add_library(foo OBJECT ${my_foo_sources}),
 # refer to these objects as $<TARGET_OBJECTS:foo>
 #
 add_library(kenlm_filter OBJECT ${KENLM_FILTER_SOURCE})
-
 
 # Explicitly list the executable files to be compiled
 set(EXE_LIST
@@ -52,7 +50,7 @@ foreach(exe ${EXE_LIST})
 	add_executable(${exe} ${exe}_main.cc $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_filter> $<TARGET_OBJECTS:kenlm_util>)
 
   # Link the executable against boost
-  target_link_libraries(${exe} ${Boost_LIBRARIES} pthread)
+  target_link_libraries(${exe} ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} pthread)
 
   # Group executables together
   set_target_properties(${exe} PROPERTIES FOLDER executables)

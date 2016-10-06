@@ -59,14 +59,14 @@ namespace Moses
 
   Mmsapt::
   Mmsapt(string const& line)
-    : PhraseDictionary(line, false)
+    : PhraseDictionary(line)
     , btfix(new mmbitext)
     , m_bias_log(NULL)
     , m_bias_loglevel(0)
 #ifndef NO_MOSES
     , m_lr_func(NULL)
 #endif
-    , m_sampling_method(random_sampling)
+    , m_sampling_method(uniform_sampling)
     , bias_key(((char*)this)+3)
     , cache_key(((char*)this)+2)
     , context_key(((char*)this)+1)
@@ -81,7 +81,9 @@ namespace Moses
     //   output factor
     // * Don't use features that depend on generation steps that won't be run
     //   yet at extract time
-    SetFeaturesToApply();
+
+    // moved the call of SetFeaturesToApply() in the function Load, as required
+
     // Register();
   }
 
@@ -188,7 +190,7 @@ namespace Moses
 
     dflt = pair<string,string>("workers","0");
     m_workers = atoi(param.insert(dflt).first->second.c_str());
-    if (m_workers == 0) m_workers = boost::thread::hardware_concurrency();
+    if (m_workers == 0) m_workers = StaticData::Instance().ThreadCount();
     else m_workers = min(m_workers,size_t(boost::thread::hardware_concurrency()));
     
     dflt = pair<string,string>("bias-loglevel","0");
@@ -255,12 +257,16 @@ namespace Moses
 
     if ((m = param.find("method")) != param.end())
       {
-        if (m->second == "random")
-          m_sampling_method = random_sampling;
+        if (m->second == "uniform")
+          m_sampling_method = uniform_sampling;
+        else if (m->second == "biased")
+          m_sampling_method = biased_sampling;
         else if (m->second == "ranked")
           m_sampling_method = ranked_sampling;
         else if (m->second == "ranked2")
           m_sampling_method = ranked_sampling2;
+        else if (m->second == "ranked3")
+          m_sampling_method = ranked_sampling3;
         else if (m->second == "full")
           m_sampling_method = full_coverage;
         else UTIL_THROW2("unrecognized specification 'method='" << m->second
@@ -419,6 +425,7 @@ namespace Moses
   Mmsapt::
   Load(AllOptions::ptr const& opts)
   {
+    SetFeaturesToApply();
     Load(opts, true);
   }
 
@@ -577,7 +584,7 @@ namespace Moses
           zilch.raw2 = m.approxOccurrenceCount();
         pool += zilch;
         BOOST_FOREACH(SPTR<pscorer> const& ff, m_active_ff_fix)
-          (*ff)(*dynbt, ff->allowPooling() ? pool : zilch, &fvals);
+          (*ff)(*btfix, ff->allowPooling() ? pool : zilch, &fvals);
       }
     if (fix)
       {
@@ -603,6 +610,8 @@ namespace Moses
     tp->SetAlignTerm(pool.aln);
     tp->GetScoreBreakdown().Assign(this, fvals);
     // Evaluate with all features that can be computed using available factors
+    VERBOSE(2,"  TargetPhrase*  Mmsapt::  mkTPhrase(ttasksptr const& ttask,            Phrase const& src,           PhrasePair<Token>* fix,            PhrasePair<Token>* dyn,            SPTR<Bitext<Token> > const& dynbt) const" << std::endl);
+    VERBOSE(2,"  calling tp->EvaluateInIsolation(src, m_featuresToApply)" << std::endl);
     tp->EvaluateInIsolation(src, m_featuresToApply);
 
 #ifndef NO_MOSES
@@ -690,9 +699,12 @@ namespace Moses
     // get context-specific cache of items previously looked up
     SPTR<ContextScope> const& scope = ttask->GetScope();
     SPTR<TPCollCache> cache = scope->get<TPCollCache>(cache_key);
-    if (!cache) cache = m_cache; // no context-specific cache, use global one
-      
+    //if (!cache) cache = m_cache; // no context-specific cache, use global one
+    UTIL_THROW_IF2(!cache, "no cache in GetTargetPhraseCollectionLEGACY(): but one should always be set up in InitializeForInput()");
+
+    // get phrasekey from the cache, or create a new cache entry.
     ret = cache->get(phrasekey, dyn->revision());
+
     // TO DO: we should revise the revision mechanism: we take the
     // length of the dynamic bitext (in sentences) at the time the PT
     // entry was stored as the time stamp. For each word in the
@@ -727,7 +739,7 @@ namespace Moses
         if (foo) { sfix = *foo; sfix->wait(); }
         else 
           {
-            BitextSampler<Token> s(btfix, mfix, context->bias, 
+            BitextSampler<Token> s(btfix, sphrase, /* fwd= */ true, context->bias,
                                    m_min_sample_size, 
                                    m_default_sample_size, 
                                    m_sampling_method);
@@ -741,14 +753,15 @@ namespace Moses
 
     vector<PhrasePair<Token> > ppfix,ppdyn;
     PhrasePair<Token>::SortByTargetIdSeq sort_by_tgt_id;
+    phrase<Token> sp(sphrase);
     if (sfix)
       {
-        expand(mfix, *btfix, *sfix, ppfix, m_bias_log);
+        expand(mfix.getPid(), sp, /* fwd = */ true, *btfix, *sfix, ppfix, m_bias_log);
         sort(ppfix.begin(), ppfix.end(),sort_by_tgt_id);
       }
     if (sdyn)
       {
-        expand(mdyn, *dyn, *sdyn, ppdyn, m_bias_log);
+        expand(mdyn.getPid(), sp, /* fwd = */ true, *dyn, *sdyn, ppdyn, m_bias_log);
         sort(ppdyn.begin(), ppdyn.end(),sort_by_tgt_id);
       }
 
@@ -866,23 +879,19 @@ namespace Moses
     boost::unique_lock<boost::shared_mutex> mylock(m_lock);
     
     SPTR<ContextScope> const& scope = ttask->GetScope();
-    SPTR<TPCollCache> localcache = scope->get<TPCollCache>(cache_key);
+    SPTR<TPCollCache> cache = scope->get<TPCollCache>(cache_key);
     SPTR<ContextForQuery> context = scope->get<ContextForQuery>(btfix.get(), true);
     boost::unique_lock<boost::shared_mutex> ctxlock(context->lock);
 
     // if (localcache) std::cerr << "have local cache " << std::endl;
     // std::cerr << "BOO at " << HERE << std::endl;
-    if (!localcache)
-      {
-        // std::cerr << "no local cache at " << HERE << std::endl;
-        setup_bias(ttask);
-        if (context->bias) 
-          {
-            localcache.reset(new TPCollCache(m_cache_size));
-          }
-        else localcache = m_cache;
-        scope->set<TPCollCache>(cache_key, localcache);
-      }
+    if (!cache)
+    {
+      // std::cerr << "no local cache at " << HERE << std::endl;
+      setup_bias(ttask);
+      cache.reset(new TPCollCache(m_cache_size));
+      scope->set<TPCollCache>(cache_key, cache);
+    }
 
     if (!context->cache1) context->cache1.reset(new pstats::cache_t);
     if (!context->cache2) context->cache2.reset(new pstats::cache_t);
@@ -916,7 +925,7 @@ namespace Moses
         uint64_t pid = mfix.getPid();
         if (!context->cache1->get(pid))
           {
-            BitextSampler<Token> s(btfix, mfix, context->bias, 
+            BitextSampler<Token> s(btfix, myphrase, /* fwd= */ true, context->bias,
                                    m_min_sample_size, m_default_sample_size, 
                                    m_sampling_method);
             if (*context->cache1->get(pid, s.stats()) == s.stats())

@@ -96,6 +96,9 @@ namespace sapt
     tpt::filepos_type idxOffset;
     const char* p = myfile.data();
     id_type numSent,numWords;
+    uint64_t versionMagic;
+    p = tpt::numread(p, versionMagic);
+    assert(versionMagic == tpt::INDEX_V2_MAGIC);
     p = tpt::numread(p,idxOffset);
     p = tpt::numread(p,numSent);
     p = tpt::numread(p,numWords);
@@ -180,7 +183,15 @@ namespace sapt
 	assert(0);
       }
     tpt::filepos_type idxOffset;
+    uint64_t versionMagic;
     char const* p = file.data();
+    p = tpt::numread(p, versionMagic);
+    if (versionMagic != tpt::INDEX_V2_MAGIC)
+      {
+        std::ostringstream msg;
+        msg << "mmTtrack<>::open: File '" << fname << "' does not contain a recent v2 index (magic is wrong). Please re-build with mtt-build.";
+        throw std::runtime_error(msg.str().c_str());
+      }
     p = tpt::numread(p, idxOffset);
     p = tpt::numread(p,this->numSent);
     p = tpt::numread(p,this->numWords);

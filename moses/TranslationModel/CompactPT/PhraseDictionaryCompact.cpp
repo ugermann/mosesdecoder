@@ -47,7 +47,7 @@ namespace Moses
 PhraseDictionaryCompact::SentenceCache PhraseDictionaryCompact::m_sentenceCache;
 
 PhraseDictionaryCompact::PhraseDictionaryCompact(const std::string &line)
-  :PhraseDictionary(line, true)
+  :PhraseDictionary(line)
   ,m_inMemory(true)//(s_inMemoryByDefault)
   ,m_useAlignmentInfo(true)
   ,m_hash(10, 16)

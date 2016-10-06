@@ -82,8 +82,12 @@ const std::string PhraseOrientationFeature::DORIENT("D");
 
 PhraseOrientationFeature::PhraseOrientationFeature(const std::string &line)
   : StatefulFeatureFunction(6, line)
-  , m_glueTargetLHSStr("Q")
-  , m_distinguishStates(true)
+  , m_glueLabelStr("Q")
+  , m_noScoreBoundary(false)
+  , m_monotoneScoreBoundary(false)
+  , m_distinguishStates(false)
+  , m_lookaheadScore(false)
+  , m_heuristicScoreUseWeights(false)
   , m_useSparseWord(false)
   , m_useSparseNT(false)
   , m_offsetR2LScores(m_numScoreComponents/2)
@@ -93,24 +97,32 @@ PhraseOrientationFeature::PhraseOrientationFeature(const std::string &line)
   VERBOSE(1, "Initializing feature " << GetScoreProducerDescription() << " ...");
   ReadParameters();
   FactorCollection &factorCollection = FactorCollection::Instance();
-  m_glueTargetLHS = factorCollection.AddFactor(m_glueTargetLHSStr, true);
+  m_glueLabel = factorCollection.AddFactor(m_glueLabelStr, true);
   VERBOSE(1, " Done." << std::endl);
 }
 
 
 void PhraseOrientationFeature::SetParameter(const std::string& key, const std::string& value)
 {
-  if (key == "glueTargetLHS") {
-    m_glueTargetLHSStr = value;
-  } else if (key == "distinguishStates") {
+  if (key == "glue-label") {
+    m_glueLabelStr = value;
+  } else if (key == "no-score-boundary") {
+    m_noScoreBoundary = Scan<bool>(value);
+  } else if (key == "monotone-score-boundary") {
+    m_monotoneScoreBoundary = Scan<bool>(value);
+  } else if (key == "distinguish-states") {
     m_distinguishStates = Scan<bool>(value);
-  } else if (key == "sparseWord") {
+  } else if (key == "lookahead-score") {
+    m_lookaheadScore = Scan<bool>(value);
+  } else if (key == "heuristic-score-use-weights") {
+    m_heuristicScoreUseWeights = Scan<bool>(value);
+  } else if (key == "sparse-word") {
     m_useSparseWord = Scan<bool>(value);
-  } else if (key == "sparseNT") {
+  } else if (key == "sparse-nt") {
     m_useSparseNT = Scan<bool>(value);
-  } else if (key == "targetWordList") {
+  } else if (key == "target-word-list") {
     m_filenameTargetWordList = value;
-  } else if (key == "sourceWordList") {
+  } else if (key == "source-word-list") {
     m_filenameSourceWordList = value;
   } else {
     StatefulFeatureFunction::SetParameter(key, value);
@@ -156,10 +168,13 @@ void PhraseOrientationFeature::EvaluateInIsolation(const Phrase &source,
     ScoreComponentCollection &estimatedScores) const
 {
   targetPhrase.SetRuleSource(source);
+  const Factor* targetPhraseLHS = targetPhrase.GetTargetLHS()[0];
 
   if (const PhraseProperty *property = targetPhrase.GetProperty("Orientation")) {
     const OrientationPhraseProperty *orientationPhraseProperty = static_cast<const OrientationPhraseProperty*>(property);
-    LookaheadScore(orientationPhraseProperty, scoreBreakdown);
+    if (m_lookaheadScore) {
+      LookaheadScore(orientationPhraseProperty, scoreBreakdown, targetPhraseLHS);
+    }
   } else {
     // abort with error message if the phrase does not translate an unknown word
     UTIL_THROW_IF2(!targetPhrase.GetWord(0).IsOOV(), GetScoreProducerDescription()
@@ -194,8 +209,6 @@ void PhraseOrientationFeature::EvaluateInIsolation(const Phrase &source,
 
     // Determine orientation classes of non-terminals
 
-    const Factor* targetPhraseLHS = targetPhrase.GetTargetLHS()[0];
-
     for (AlignmentInfo::const_iterator it=targetPhrase.GetAlignNonTerm().begin();
          it!=targetPhrase.GetAlignNonTerm().end(); ++it) {
       size_t sourceIndex = it->first;
@@ -206,7 +219,7 @@ void PhraseOrientationFeature::EvaluateInIsolation(const Phrase &source,
       MosesTraining::PhraseOrientation::REO_CLASS l2rOrientation = phraseOrientation.GetOrientationInfo(sourceIndex,sourceIndex,MosesTraining::PhraseOrientation::REO_DIR_L2R);
 
       if ( ((targetIndex == 0) || !phraseOrientation.TargetSpanIsAligned(0,targetIndex)) // boundary non-terminal in rule-initial position (left boundary)
-           && (targetPhraseLHS != m_glueTargetLHS) ) { // and not glue rule
+           && (targetPhraseLHS != m_glueLabel) ) { // and not glue rule
 
         FEATUREVERBOSE(3, "Left boundary: targetIndex== " << targetIndex);
         if (targetIndex != 0) {
@@ -236,7 +249,7 @@ void PhraseOrientationFeature::EvaluateInIsolation(const Phrase &source,
       MosesTraining::PhraseOrientation::REO_CLASS r2lOrientation = phraseOrientation.GetOrientationInfo(sourceIndex,sourceIndex,MosesTraining::PhraseOrientation::REO_DIR_R2L);
 
       if ( ((targetIndex == targetPhrase.GetSize()-1) || !phraseOrientation.TargetSpanIsAligned(targetIndex,targetPhrase.GetSize()-1)) // boundary non-terminal in rule-final position (right boundary)
-           && (targetPhraseLHS != m_glueTargetLHS) ) { // and not glue rule
+           && (targetPhraseLHS != m_glueLabel) ) { // and not glue rule
 
         FEATUREVERBOSE(3, "Right boundary: targetIndex== " << targetIndex);
         if (targetIndex != targetPhrase.GetSize()-1) {
@@ -267,42 +280,6 @@ void PhraseOrientationFeature::EvaluateInIsolation(const Phrase &source,
                    << ": Insertion of orientation data attempted repeatedly. ");
   }
   FEATUREVERBOSE(2, "END========EvaluateInIsolation========" << std::endl);
-}
-
-
-void PhraseOrientationFeature::LookaheadScore(const OrientationPhraseProperty *orientationPhraseProperty,
-    ScoreComponentCollection &scoreBreakdown,
-    bool subtract) const
-{
-  size_t ffScoreIndex = m_index;
-
-  std::vector<float> scoresL2R;
-  scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilityMono()) );
-  scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilitySwap()) );
-  scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilityDiscontinuous()) );
-  size_t heuristicScoreIndexL2R = GetHeuristicScoreIndex(scoresL2R, 0);
-
-  if (subtract) {
-    scoreBreakdown.PlusEquals(ffScoreIndex+heuristicScoreIndexL2R,
-                              -scoresL2R[heuristicScoreIndexL2R]);
-  } else {
-    scoreBreakdown.PlusEquals(ffScoreIndex+heuristicScoreIndexL2R,
-                              scoresL2R[heuristicScoreIndexL2R]);
-  }
-
-  std::vector<float> scoresR2L;
-  scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilityMono()) );
-  scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilitySwap()) );
-  scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilityDiscontinuous()) );
-  size_t heuristicScoreIndexR2L = GetHeuristicScoreIndex(scoresR2L, m_offsetR2LScores);
-
-  if (subtract) {
-    scoreBreakdown.PlusEquals(ffScoreIndex+m_offsetR2LScores+heuristicScoreIndexR2L,
-                              -scoresR2L[heuristicScoreIndexR2L]);
-  } else {
-    scoreBreakdown.PlusEquals(ffScoreIndex+m_offsetR2LScores+heuristicScoreIndexR2L,
-                              scoresR2L[heuristicScoreIndexR2L]);
-  }
 }
 
 
@@ -380,7 +357,9 @@ FFState* PhraseOrientationFeature::EvaluateWhenApplied(
                      << " R2L_Dleft "  << orientationPhraseProperty->GetRightToLeftProbabilityDleft()
                      << std::endl);
 
-      LookaheadScore(orientationPhraseProperty, *accumulator, true);
+      if (m_lookaheadScore) {
+        LookaheadScore(orientationPhraseProperty, *accumulator, prevTarPhrLHS, true);
+      }
 
       const PhraseOrientationFeatureState* prevState =
         static_cast<const PhraseOrientationFeatureState*>(prevHypo->GetFFState(featureID));
@@ -416,35 +395,38 @@ FFState* PhraseOrientationFeature::EvaluateWhenApplied(
         }
       }
 
-      if ( (nNT == 0) && reoClassData->firstNonTerminalIsBoundary ) {
-        // delay left-to-right scoring
+      if ( (nNT == 0) && reoClassData->firstNonTerminalIsBoundary && !m_monotoneScoreBoundary ) {
 
-        FEATUREVERBOSE(3, "Delaying left-to-right scoring" << std::endl);
+        if (!m_noScoreBoundary) {
+          // delay left-to-right scoring
 
-        std::bitset<3> possibleFutureOrientationsL2R(0x7);
-        possibleFutureOrientationsL2R[0] = !reoClassData->firstNonTerminalPreviousSourceSpanIsAligned;
-        possibleFutureOrientationsL2R[1] = !reoClassData->firstNonTerminalFollowingSourceSpanIsAligned;
+          FEATUREVERBOSE(3, "Delaying left-to-right scoring" << std::endl);
 
-        // add heuristic scores
+          std::bitset<3> possibleFutureOrientationsL2R(0x7);
+          possibleFutureOrientationsL2R[0] = !reoClassData->firstNonTerminalPreviousSourceSpanIsAligned;
+          possibleFutureOrientationsL2R[1] = !reoClassData->firstNonTerminalFollowingSourceSpanIsAligned;
 
-        std::vector<float> scoresL2R;
-        scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilityMono()) );
-        scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilitySwap()) );
-        scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilityDiscontinuous()) );
+          // add heuristic scores
 
-        size_t heuristicScoreIndexL2R = GetHeuristicScoreIndex(scoresL2R, 0, possibleFutureOrientationsL2R);
+          std::vector<float> scoresL2R;
+          scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilityMono()) );
+          scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilitySwap()) );
+          scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilityDiscontinuous()) );
 
-        newScores[heuristicScoreIndexL2R] += scoresL2R[heuristicScoreIndexL2R];
-        state->SetLeftBoundaryL2R(scoresL2R, heuristicScoreIndexL2R, possibleFutureOrientationsL2R, prevTarPhrLHS, prevState);
+          size_t heuristicScoreIndexL2R = GetHeuristicScoreIndex(scoresL2R, 0, possibleFutureOrientationsL2R);
 
-        if ( (possibleFutureOrientationsL2R & prevState->m_leftBoundaryNonTerminalL2RPossibleFutureOrientations) == 0x4 ) {
-          // recursive: discontinuous orientation
-          FEATUREVERBOSE(5, "previous state: L2R discontinuous orientation "
-                         << possibleFutureOrientationsL2R << " & " << prevState->m_leftBoundaryNonTerminalL2RPossibleFutureOrientations
-                         << " = " << (possibleFutureOrientationsL2R & prevState->m_leftBoundaryNonTerminalL2RPossibleFutureOrientations)
-                         << std::endl);
-          LeftBoundaryL2RScoreRecursive(featureID, prevState, 0x4, newScores, accumulator);
-          state->m_leftBoundaryRecursionGuard = true; // prevent subderivation from being scored recursively multiple times
+          newScores[heuristicScoreIndexL2R] += scoresL2R[heuristicScoreIndexL2R];
+          state->SetLeftBoundaryL2R(scoresL2R, heuristicScoreIndexL2R, possibleFutureOrientationsL2R, prevTarPhrLHS, prevState);
+
+          if ( (possibleFutureOrientationsL2R & prevState->m_leftBoundaryNonTerminalL2RPossibleFutureOrientations) == 0x4 ) {
+            // recursive: discontinuous orientation
+            FEATUREVERBOSE(5, "previous state: L2R discontinuous orientation "
+                           << possibleFutureOrientationsL2R << " & " << prevState->m_leftBoundaryNonTerminalL2RPossibleFutureOrientations
+                           << " = " << (possibleFutureOrientationsL2R & prevState->m_leftBoundaryNonTerminalL2RPossibleFutureOrientations)
+                           << std::endl);
+            LeftBoundaryL2RScoreRecursive(featureID, prevState, 0x4, newScores, accumulator);
+            state->m_leftBoundaryRecursionGuard = true; // prevent subderivation from being scored recursively multiple times
+          }
         }
 
       } else {
@@ -452,25 +434,34 @@ FFState* PhraseOrientationFeature::EvaluateWhenApplied(
         if ( l2rOrientation == MosesTraining::PhraseOrientation::REO_CLASS_LEFT ) {
 
           newScores[0] += TransformScore(orientationPhraseProperty->GetLeftToRightProbabilityMono());
-          // if sub-derivation has left-boundary non-terminal:
-          // add recursive actual score of boundary non-terminal from subderivation
-          LeftBoundaryL2RScoreRecursive(featureID, prevState, 0x1, newScores, accumulator);
+
+          if (!m_noScoreBoundary && !m_monotoneScoreBoundary) {
+            // if sub-derivation has left-boundary non-terminal:
+            // add recursive actual score of boundary non-terminal from subderivation
+            LeftBoundaryL2RScoreRecursive(featureID, prevState, 0x1, newScores, accumulator);
+          }
 
         } else if ( l2rOrientation == MosesTraining::PhraseOrientation::REO_CLASS_RIGHT ) {
 
           newScores[1] += TransformScore(orientationPhraseProperty->GetLeftToRightProbabilitySwap());
-          // if sub-derivation has left-boundary non-terminal:
-          // add recursive actual score of boundary non-terminal from subderivation
-          LeftBoundaryL2RScoreRecursive(featureID, prevState, 0x2, newScores, accumulator);
+
+          if (!m_noScoreBoundary && !m_monotoneScoreBoundary) {
+            // if sub-derivation has left-boundary non-terminal:
+            // add recursive actual score of boundary non-terminal from subderivation
+            LeftBoundaryL2RScoreRecursive(featureID, prevState, 0x2, newScores, accumulator);
+          }
 
         } else if ( ( l2rOrientation == MosesTraining::PhraseOrientation::REO_CLASS_DLEFT ) ||
                     ( l2rOrientation == MosesTraining::PhraseOrientation::REO_CLASS_DRIGHT ) ||
                     ( l2rOrientation == MosesTraining::PhraseOrientation::REO_CLASS_UNKNOWN ) ) {
 
           newScores[2] += TransformScore(orientationPhraseProperty->GetLeftToRightProbabilityDiscontinuous());
-          // if sub-derivation has left-boundary non-terminal:
-          // add recursive actual score of boundary non-terminal from subderivation
-          LeftBoundaryL2RScoreRecursive(featureID, prevState, 0x4, newScores, accumulator);
+
+          if (!m_noScoreBoundary && !m_monotoneScoreBoundary) {
+            // if sub-derivation has left-boundary non-terminal:
+            // add recursive actual score of boundary non-terminal from subderivation
+            LeftBoundaryL2RScoreRecursive(featureID, prevState, 0x4, newScores, accumulator);
+          }
 
         } else {
 
@@ -518,35 +509,38 @@ FFState* PhraseOrientationFeature::EvaluateWhenApplied(
         }
       }
 
-      if ( (nNT == currTarPhr.GetAlignNonTerm().GetSize()-1) && reoClassData->lastNonTerminalIsBoundary ) {
-        // delay right-to-left scoring
+      if ( (nNT == currTarPhr.GetAlignNonTerm().GetSize()-1) && reoClassData->lastNonTerminalIsBoundary && !m_monotoneScoreBoundary ) {
 
-        FEATUREVERBOSE(3, "Delaying right-to-left scoring" << std::endl);
+        if (!m_noScoreBoundary) {
+          // delay right-to-left scoring
 
-        std::bitset<3> possibleFutureOrientationsR2L(0x7);
-        possibleFutureOrientationsR2L[0] = !reoClassData->lastNonTerminalFollowingSourceSpanIsAligned;
-        possibleFutureOrientationsR2L[1] = !reoClassData->lastNonTerminalPreviousSourceSpanIsAligned;
+          FEATUREVERBOSE(3, "Delaying right-to-left scoring" << std::endl);
 
-        // add heuristic scores
+          std::bitset<3> possibleFutureOrientationsR2L(0x7);
+          possibleFutureOrientationsR2L[0] = !reoClassData->lastNonTerminalFollowingSourceSpanIsAligned;
+          possibleFutureOrientationsR2L[1] = !reoClassData->lastNonTerminalPreviousSourceSpanIsAligned;
 
-        std::vector<float> scoresR2L;
-        scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilityMono()) );
-        scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilitySwap()) );
-        scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilityDiscontinuous()) );
+          // add heuristic scores
 
-        size_t heuristicScoreIndexR2L = GetHeuristicScoreIndex(scoresR2L, m_offsetR2LScores, possibleFutureOrientationsR2L);
+          std::vector<float> scoresR2L;
+          scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilityMono()) );
+          scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilitySwap()) );
+          scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilityDiscontinuous()) );
 
-        newScores[m_offsetR2LScores+heuristicScoreIndexR2L] += scoresR2L[heuristicScoreIndexR2L];
-        state->SetRightBoundaryR2L(scoresR2L, heuristicScoreIndexR2L, possibleFutureOrientationsR2L, prevTarPhrLHS, prevState);
+          size_t heuristicScoreIndexR2L = GetHeuristicScoreIndex(scoresR2L, m_offsetR2LScores, possibleFutureOrientationsR2L);
 
-        if ( (possibleFutureOrientationsR2L & prevState->m_rightBoundaryNonTerminalR2LPossibleFutureOrientations) == 0x4 ) {
-          // recursive: discontinuous orientation
-          FEATUREVERBOSE(5, "previous state: R2L discontinuous orientation "
-                         << possibleFutureOrientationsR2L << " & " << prevState->m_rightBoundaryNonTerminalR2LPossibleFutureOrientations
-                         << " = " << (possibleFutureOrientationsR2L & prevState->m_rightBoundaryNonTerminalR2LPossibleFutureOrientations)
-                         << std::endl);
-          RightBoundaryR2LScoreRecursive(featureID, prevState, 0x4, newScores, accumulator);
-          state->m_rightBoundaryRecursionGuard = true; // prevent subderivation from being scored recursively multiple times
+          newScores[m_offsetR2LScores+heuristicScoreIndexR2L] += scoresR2L[heuristicScoreIndexR2L];
+          state->SetRightBoundaryR2L(scoresR2L, heuristicScoreIndexR2L, possibleFutureOrientationsR2L, prevTarPhrLHS, prevState);
+
+          if ( (possibleFutureOrientationsR2L & prevState->m_rightBoundaryNonTerminalR2LPossibleFutureOrientations) == 0x4 ) {
+            // recursive: discontinuous orientation
+            FEATUREVERBOSE(5, "previous state: R2L discontinuous orientation "
+                           << possibleFutureOrientationsR2L << " & " << prevState->m_rightBoundaryNonTerminalR2LPossibleFutureOrientations
+                           << " = " << (possibleFutureOrientationsR2L & prevState->m_rightBoundaryNonTerminalR2LPossibleFutureOrientations)
+                           << std::endl);
+            RightBoundaryR2LScoreRecursive(featureID, prevState, 0x4, newScores, accumulator);
+            state->m_rightBoundaryRecursionGuard = true; // prevent subderivation from being scored recursively multiple times
+          }
         }
 
       } else {
@@ -554,25 +548,34 @@ FFState* PhraseOrientationFeature::EvaluateWhenApplied(
         if ( r2lOrientation == MosesTraining::PhraseOrientation::REO_CLASS_LEFT ) {
 
           newScores[m_offsetR2LScores+0] += TransformScore(orientationPhraseProperty->GetRightToLeftProbabilityMono());
-          // if sub-derivation has right-boundary non-terminal:
-          // add recursive actual score of boundary non-terminal from subderivation
-          RightBoundaryR2LScoreRecursive(featureID, prevState, 0x1, newScores, accumulator);
+
+          if (!m_noScoreBoundary && !m_monotoneScoreBoundary) {
+            // if sub-derivation has right-boundary non-terminal:
+            // add recursive actual score of boundary non-terminal from subderivation
+            RightBoundaryR2LScoreRecursive(featureID, prevState, 0x1, newScores, accumulator);
+          }
 
         } else if ( r2lOrientation == MosesTraining::PhraseOrientation::REO_CLASS_RIGHT ) {
 
           newScores[m_offsetR2LScores+1] += TransformScore(orientationPhraseProperty->GetRightToLeftProbabilitySwap());
-          // if sub-derivation has right-boundary non-terminal:
-          // add recursive actual score of boundary non-terminal from subderivation
-          RightBoundaryR2LScoreRecursive(featureID, prevState, 0x2, newScores, accumulator);
+
+          if (!m_noScoreBoundary && !m_monotoneScoreBoundary) {
+            // if sub-derivation has right-boundary non-terminal:
+            // add recursive actual score of boundary non-terminal from subderivation
+            RightBoundaryR2LScoreRecursive(featureID, prevState, 0x2, newScores, accumulator);
+          }
 
         } else if ( ( r2lOrientation == MosesTraining::PhraseOrientation::REO_CLASS_DLEFT ) ||
                     ( r2lOrientation == MosesTraining::PhraseOrientation::REO_CLASS_DRIGHT ) ||
                     ( r2lOrientation == MosesTraining::PhraseOrientation::REO_CLASS_UNKNOWN ) ) {
 
           newScores[m_offsetR2LScores+2] += TransformScore(orientationPhraseProperty->GetRightToLeftProbabilityDiscontinuous());
-          // if sub-derivation has right-boundary non-terminal:
-          // add recursive actual score of boundary non-terminal from subderivation
-          RightBoundaryR2LScoreRecursive(featureID, prevState, 0x4, newScores, accumulator);
+
+          if (!m_noScoreBoundary && !m_monotoneScoreBoundary) {
+            // if sub-derivation has right-boundary non-terminal:
+            // add recursive actual score of boundary non-terminal from subderivation
+            RightBoundaryR2LScoreRecursive(featureID, prevState, 0x4, newScores, accumulator);
+          }
 
         } else {
 
@@ -605,23 +608,74 @@ FFState* PhraseOrientationFeature::EvaluateWhenApplied(
 }
 
 
+void PhraseOrientationFeature::LookaheadScore(const OrientationPhraseProperty *orientationPhraseProperty,
+    ScoreComponentCollection &scoreBreakdown,
+    const Factor* targetPhraseLHS,
+    bool subtract) const
+{
+  size_t ffScoreIndex = m_index;
+
+  std::vector<float> scoresL2R;
+  scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilityMono()) );
+  scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilitySwap()) );
+  scoresL2R.push_back( TransformScore(orientationPhraseProperty->GetLeftToRightProbabilityDiscontinuous()) );
+  size_t heuristicScoreIndexL2R = 0;
+  if (targetPhraseLHS != m_glueLabel) {
+    heuristicScoreIndexL2R = GetHeuristicScoreIndex(scoresL2R, 0);
+  }
+
+  if (subtract) {
+    scoreBreakdown.PlusEquals(ffScoreIndex+heuristicScoreIndexL2R,
+                              -scoresL2R[heuristicScoreIndexL2R]);
+  } else {
+    scoreBreakdown.PlusEquals(ffScoreIndex+heuristicScoreIndexL2R,
+                              scoresL2R[heuristicScoreIndexL2R]);
+  }
+
+  std::vector<float> scoresR2L;
+  scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilityMono()) );
+  scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilitySwap()) );
+  scoresR2L.push_back( TransformScore(orientationPhraseProperty->GetRightToLeftProbabilityDiscontinuous()) );
+  size_t heuristicScoreIndexR2L = 0;
+  if (targetPhraseLHS != m_glueLabel) {
+    heuristicScoreIndexR2L = GetHeuristicScoreIndex(scoresR2L, m_offsetR2LScores);
+  }
+
+  if (subtract) {
+    scoreBreakdown.PlusEquals(ffScoreIndex+m_offsetR2LScores+heuristicScoreIndexR2L,
+                              -scoresR2L[heuristicScoreIndexR2L]);
+  } else {
+    scoreBreakdown.PlusEquals(ffScoreIndex+m_offsetR2LScores+heuristicScoreIndexR2L,
+                              scoresR2L[heuristicScoreIndexR2L]);
+  }
+}
+
+
 size_t PhraseOrientationFeature::GetHeuristicScoreIndex(const std::vector<float>& scores,
     size_t weightsVectorOffset,
     const std::bitset<3> possibleFutureOrientations) const
 {
-  if (m_weightsVector.empty()) {
-    m_weightsVector = StaticData::Instance().GetAllWeights().GetScoresForProducer(this);
-  }
   std::vector<float> weightedScores;
-  for ( size_t i=0; i<3; ++i ) {
-    weightedScores.push_back( m_weightsVector[weightsVectorOffset+i] * scores[i] );
+  if (m_heuristicScoreUseWeights) {
+    if (m_weightsVector.empty()) {
+      m_weightsVector = StaticData::Instance().GetAllWeights().GetScoresForProducer(this);
+    }
+    for ( size_t i=0; i<3; ++i ) {
+      weightedScores.push_back( m_weightsVector[weightsVectorOffset+i] * scores[i] );
+    }
   }
 
   size_t heuristicScoreIndex = 0;
   for (size_t i=1; i<3; ++i) {
     if (possibleFutureOrientations[i]) {
-      if (weightedScores[i] > weightedScores[heuristicScoreIndex]) {
-        heuristicScoreIndex = i;
+      if (m_heuristicScoreUseWeights) {
+        if (weightedScores[i] > weightedScores[heuristicScoreIndex]) {
+          heuristicScoreIndex = i;
+        }
+      } else {
+        if (scores[i] > scores[heuristicScoreIndex]) {
+          heuristicScoreIndex = i;
+        }
       }
     }
   }
@@ -630,11 +684,13 @@ size_t PhraseOrientationFeature::GetHeuristicScoreIndex(const std::vector<float>
     FEATUREVERBOSE(5, "Heuristic score computation: "
                    << "heuristicScoreIndex== " << heuristicScoreIndex);
     for (size_t i=0; i<3; ++i)
-      FEATUREVERBOSE2(5, " m_weightsVector[" << weightsVectorOffset+i << "]== " << m_weightsVector[weightsVectorOffset+i]);
-    for (size_t i=0; i<3; ++i)
       FEATUREVERBOSE2(5, " scores[" << i << "]== " << scores[i]);
-    for (size_t i=0; i<3; ++i)
-      FEATUREVERBOSE2(5, " weightedScores[" << i << "]== " << weightedScores[i]);
+    if (m_heuristicScoreUseWeights) {
+      for (size_t i=0; i<3; ++i)
+        FEATUREVERBOSE2(5, " m_weightsVector[" << weightsVectorOffset+i << "]== " << m_weightsVector[weightsVectorOffset+i]);
+      for (size_t i=0; i<3; ++i)
+        FEATUREVERBOSE2(5, " weightedScores[" << i << "]== " << weightedScores[i]);
+    }
     for (size_t i=0; i<3; ++i)
       FEATUREVERBOSE2(5, " possibleFutureOrientations[" << i << "]== " << possibleFutureOrientations[i]);
     if ( possibleFutureOrientations == 0x7 ) {
@@ -891,7 +947,7 @@ void PhraseOrientationFeature::SparseNonTerminalL2RScore(const Factor* nonTermin
     ScoreComponentCollection* scoreBreakdown,
     const std::string* o) const
 {
-  if ( nonTerminalSymbol != m_glueTargetLHS ) {
+  if ( nonTerminalSymbol != m_glueLabel ) {
     const std::string& nonTerminalString = nonTerminalSymbol->GetString().as_string();
     scoreBreakdown->PlusEquals(this,
                                "L2R"+*o+"_n_"+nonTerminalString,
@@ -905,7 +961,7 @@ void PhraseOrientationFeature::SparseNonTerminalR2LScore(const Factor* nonTermin
     ScoreComponentCollection* scoreBreakdown,
     const std::string* o) const
 {
-  if ( nonTerminalSymbol != m_glueTargetLHS ) {
+  if ( nonTerminalSymbol != m_glueLabel ) {
     const std::string& nonTerminalString = nonTerminalSymbol->GetString().as_string();
     scoreBreakdown->PlusEquals(this,
                                "R2L"+*o+"_n_"+nonTerminalString,

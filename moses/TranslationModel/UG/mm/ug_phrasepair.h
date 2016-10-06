@@ -49,8 +49,7 @@ namespace sapt
 	      pstats const* ps = NULL, size_t const numfeats=0);
 
     PhrasePair const&
-    update(uint64_t const pid2, Token const* x,
-	   uint32_t const len, jstats const& js);
+    update(uint64_t const pid2, jstats const& js);
 
     void
     fill_lr_vec(LRModel::Direction const& dir,
@@ -105,11 +104,10 @@ namespace sapt
   template<typename Token>
   PhrasePair<Token> const&
   PhrasePair<Token>
-  ::update(uint64_t const pid2,
-	   Token const* x, uint32_t const len, jstats const& js)
+  ::update(uint64_t const pid2, jstats const& js)
   {
     p2    = pid2;
-    start2 = x; len2 = len;
+    start2 = reinterpret_cast<const phrase<Token> &>(js.trg()).begin; len2 = (uint32_t) js.trg().len;
     raw2  = js.cnt2();
     joint = js.rcnt();
     cum_bias = js.bcnt();

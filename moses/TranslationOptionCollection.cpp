@@ -202,7 +202,7 @@ ProcessOneUnknownWord(const InputPath &inputPath, size_t sourcePos,
     // modify the starting bitmap
   }
 
-  TargetPhrase targetPhrase(firstPt);
+  TargetPhrase targetPhrase(inputPath.ttask, firstPt);
 
   if (!(dropUnk || isEpsilon) || isDigit) {
     // add to dictionary

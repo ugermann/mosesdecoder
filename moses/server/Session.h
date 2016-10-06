@@ -16,14 +16,11 @@ namespace MosesServer{
   {
     uint64_t const id;
     time_t start_time;
-    time_t last_access;
-    boost::shared_ptr<Moses::ContextScope> const scope; // stores local info
-    SPTR<std::map<std::string,float> > m_context_weights;
+    mutable time_t last_access;
+    boost::shared_ptr<Moses::ContextScope> scope; // stores local info
 
-    
     Session(uint64_t const session_id) 
       : id(session_id)
-      , scope(new Moses::ContextScope) 
     { 
       last_access = start_time = time(NULL); 
     }
@@ -42,23 +39,40 @@ namespace MosesServer{
 
     SessionCache() : m_session_counter(1) {}
 
-    Session const& 
+    Session&
     operator[](uint32_t id)
     {
       boost::upgrade_lock<boost::shared_mutex> lock(m_lock);
-      if (id > 1) 
+      if (id > 1 || id == 0)
+      {
+        boost::unordered_map<uint64_t, Session>::iterator m = m_cache.find(id);
+        if (m != m_cache.end())
         {
-          boost::unordered_map<uint64_t, Session>::iterator m = m_cache.find(id);
-          if (m != m_cache.end()) 
-            {
-              m->second.last_access = time(NULL);
-              return m->second;
-            }
+          m->second.last_access = time(NULL);
+          return m->second;
         }
+      }
       boost::upgrade_to_unique_lock<boost::shared_mutex> xlock(lock);
-      id = ++m_session_counter;
+      if(id != 0)
+        id = ++m_session_counter;
       std::pair<uint64_t, Session> foo(id, Session(id));
       return m_cache.insert(foo).first->second;
+    }
+
+    Session const&
+    at(uint32_t id) {
+      boost::upgrade_lock<boost::shared_mutex> lock(m_lock);
+      if (id > 1 || id == 0)
+      {
+        boost::unordered_map<uint64_t, Session>::iterator m = m_cache.find(id);
+        if (m != m_cache.end())
+        {
+          m->second.last_access = time(NULL);
+          return m->second;
+        }
+      }
+      assert(0 && "Session.at() failed - wrong session id");
+      return *reinterpret_cast<const Session *>(NULL);
     }
 
     void

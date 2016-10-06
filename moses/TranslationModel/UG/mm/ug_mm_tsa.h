@@ -36,7 +36,10 @@ namespace sapt
 
   private:
 
-    char const* index_jump(char const* a, char const* z, float ratio) const;
+    virtual char const* index_jump(char const* a, char const* z, float ratio) const;
+
+    virtual char const* index_jump_precise(char const* startRange, char const* stopRange, size_t idx) const;
+
     char const* getLowerBound(id_type t) const;
     char const* getUpperBound(id_type t) const;
 
@@ -59,13 +62,7 @@ namespace sapt
     readSid(char const* p, char const* q, id_type& sid) const;
 
     char const*
-    readSid(char const* p, char const* q, ::uint64_t& sid) const;
-
-    char const*
-    readOffset(char const* p, char const* q, uint16_t& offset) const;
-
-    char const*
-    readOffset(char const* p, char const* q, ::uint64_t& offset) const;
+    readOffset(char const* p, char const* q, offset_type& offset) const;
 
     void sanityCheck() const;
 
@@ -73,8 +70,8 @@ namespace sapt
 
   // ======================================================================
 
-  /** jump to the point 1/ratio in a tightly packed index
-   *  assumes that keys are flagged with '1', values with '0'
+  /**
+   * jump to the point 1/ratio in an index
    */
   template<typename TOKEN>
   char const*
@@ -82,14 +79,24 @@ namespace sapt
   index_jump(char const* a, char const* z, float ratio) const
   {
     assert(ratio >= 0 && ratio < 1);
-    char const* m = a+int(ratio*(z-a));
-    if (m > a)
-      {
-	while (m > a && *m <  0) --m;
-	while (m > a && *m >= 0) --m;
-	if (*m < 0) ++m;
-      }
-    assert(*m >= 0);
+    int jump = (ratio*(z-a));
+    char const* m = a+jump-(jump%(sizeof(tpt::id_type)+sizeof(tpt::offset_type)));  // ensure we are landing on exact location
+    assert(m >= a && m < z);
+    return m;
+  }
+
+  /** @return an index position idx between
+   *  /startRange/ and /endRange/.
+   */
+  template<typename TOKEN>
+  char const*
+  mmTSA<TOKEN>::
+  index_jump_precise(char const* startRange,
+                     char const* stopRange,
+                     size_t idx) const
+  {
+    char const* m = startRange + idx * (sizeof(id_type) + sizeof(offset_type));
+    assert(m < stopRange);
     return m;
   }
 
@@ -101,7 +108,6 @@ namespace sapt
   {
     this->startArray   = NULL;
     this->endArray     = NULL;
-    this->BitSetCachingThreshold=4096;
   };
 
   // ======================================================================
@@ -120,7 +126,6 @@ namespace sapt
   mmTSA<TOKEN>::
   open(std::string fname, typename boost::shared_ptr<Ttrack<TOKEN> const> c)
   {
-    this->bsc.reset(new BitSetCache<TSA<TOKEN> >(this));
     if (access(fname.c_str(),F_OK))
       {
         std::ostringstream msg;
@@ -133,6 +138,14 @@ namespace sapt
     Moses::prime(file);
     char const* p = file.data();
     filepos_type idxOffset;
+    uint64_t versionMagic;
+    p = tpt::numread(p,versionMagic);
+    if (versionMagic != tpt::INDEX_V2_MAGIC)
+      {
+        std::ostringstream msg;
+        msg << "mmTSA<>::open: File '" << fname << "' does not contain a recent v2 index (magic is wrong). Please re-build with mtt-build.";
+        throw std::runtime_error(msg.str().c_str());
+      }
     p = tpt::numread(p,idxOffset);
     p = tpt::numread(p,this->indexSize);
 
@@ -179,18 +192,21 @@ namespace sapt
   mmTSA<TOKEN>::
   readSid(char const* p, char const* q, id_type& sid) const
   {
-    return tpt::tightread(p,q,sid);
+    return tpt::numread(p,sid);
   }
 
   // ======================================================================
 
+/*
   template<typename TOKEN>
   char const*
   mmTSA<TOKEN>::
   readSid(char const* p, char const* q, ::uint64_t& sid) const
   {
-    return tpt::tightread(p,q,sid);
+    // TODO: XXX: is this used anywhere? Why? (typedef id_type is not good???)
+    return tpt::numread(p,sid);
   }
+*/
 
   // ======================================================================
 
@@ -198,22 +214,23 @@ namespace sapt
   inline
   char const*
   mmTSA<TOKEN>::
-  readOffset(char const* p, char const* q, uint16_t& offset) const
+  readOffset(char const* p, char const* q, offset_type& offset) const
   {
-    return tpt::tightread(p,q,offset);
+    return tpt::numread(p,offset);
   }
 
   // ======================================================================
-
+/*
   template<typename TOKEN>
   inline
   char const*
   mmTSA<TOKEN>::
   readOffset(char const* p, char const* q, ::uint64_t& offset) const
   {
+    // TODO: WHY??????
     return tpt::tightread(p,q,offset);
   }
-
+*/
   // ======================================================================
 
   template<typename TOKEN>
@@ -221,15 +238,8 @@ namespace sapt
   mmTSA<TOKEN>::
   rawCnt(char const* p, char const* const q) const
   {
-    id_type sid; uint16_t off;
-    size_t ret=0;
-    while (p < q)
-      {
-	p = tpt::tightread(p,q,sid);
-	p = tpt::tightread(p,q,off);
-	ret++;
-      }
-    return ret;
+    size_t ret = (q - p) / (sizeof(id_type) + sizeof(offset_type));
+    return (count_type) ret;
   }
 
   // ======================================================================
@@ -241,12 +251,12 @@ namespace sapt
 	    count_type& sids, count_type& raw) const
   {
     raw = 0;
-    id_type sid; uint16_t off;
+    id_type sid; offset_type off;
     boost::dynamic_bitset<uint64_t> check(this->corpus->size());
     while (p < q)
       {
-	p = tpt::tightread(p,q,sid);
-	p = tpt::tightread(p,q,off);
+	p = tpt::numread(p,sid);
+	p = tpt::numread(p,off);
 	check.set(sid);
 	raw++;
       }

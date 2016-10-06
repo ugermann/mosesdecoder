@@ -18,6 +18,9 @@
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  ***********************************************************************/
+
+#include <memory>
+
 #include "util/exception.hh"
 
 #include "moses/TranslationModel/PhraseDictionary.h"
@@ -26,6 +29,7 @@
 #include "moses/InputFileStream.h"
 #include "moses/StaticData.h"
 #include "moses/TargetPhrase.h"
+#include "moses/TranslationTask.h"
 
 using namespace std;
 
@@ -36,7 +40,7 @@ PhraseDictionaryDynamicCacheBased *PhraseDictionaryDynamicCacheBased::s_instance
 
 //! contructor
 PhraseDictionaryDynamicCacheBased::PhraseDictionaryDynamicCacheBased(const std::string &line)
-  : PhraseDictionary(line, true)
+  : PhraseDictionary(line)
 {
   std::cerr << "Initializing PhraseDictionaryDynamicCacheBased feature..." << std::endl;
 
@@ -148,7 +152,13 @@ void PhraseDictionaryDynamicCacheBased::SetParameter(const std::string& key, con
 
 void PhraseDictionaryDynamicCacheBased::InitializeForInput(ttasksptr const& ttask)
 {
+  m_ttask.reset(new ttasksptr(ttask));
   ReduceCache();
+}
+
+void PhraseDictionaryDynamicCacheBased::CleanUpAfterSentenceProcessing(const InputType& source)
+{
+  m_ttask.reset(NULL);
 }
 
 TargetPhraseCollection::shared_ptr PhraseDictionaryDynamicCacheBased::GetTargetPhraseCollection(const Phrase &source) const
@@ -161,9 +171,10 @@ TargetPhraseCollection::shared_ptr PhraseDictionaryDynamicCacheBased::GetTargetP
   if(it != m_cacheTM.end()) {
     tpc.reset(new TargetPhraseCollection(*(it->second).first));
 
-    std::vector<const TargetPhrase*>::const_iterator it2 = tpc->begin();
+    std::vector<const TargetPhrase*>::iterator it2 = tpc->begin();
 
     while (it2 != tpc->end()) {
+      ((TargetPhrase*) *it2)->SetScope(m_ttask.get()->get()->GetScope());
       ((TargetPhrase*) *it2)->EvaluateInIsolation(source, GetFeaturesToApply());
       it2++;
     }
@@ -516,7 +527,7 @@ void PhraseDictionaryDynamicCacheBased::Update(std::string sourcePhraseString, s
   VERBOSE(3,"PhraseDictionaryDynamicCacheBased::Update(std::string sourcePhraseString, std::string targetPhraseString, std::string ageString, std::string waString)" << std::endl);
   const StaticData &staticData = StaticData::Instance();
   Phrase sourcePhrase(0);
-  TargetPhrase targetPhrase(0);
+  TargetPhrase targetPhrase(*m_ttask, 0);
 
   VERBOSE(3, "ageString:|" << ageString << "|" << std::endl);
   char *err_ind_temp;
@@ -578,7 +589,7 @@ void PhraseDictionaryDynamicCacheBased::Update(Phrase sp, TargetPhrase tp, int a
     }
     if (!found) {
       VERBOSE(3,"tp:|" << tp << "| NOT FOUND" << std::endl);
-      std::auto_ptr<TargetPhrase> targetPhrase(new TargetPhrase(tp));
+      std::unique_ptr<TargetPhrase> targetPhrase(new TargetPhrase(tp));
 
       targetPhrase->GetScoreBreakdown().Assign(this, GetPreComputedScores(age));
       if (!waString.empty()) targetPhrase->SetAlignmentInfo(waString);
@@ -606,7 +617,7 @@ void PhraseDictionaryDynamicCacheBased::Update(Phrase sp, TargetPhrase tp, int a
     m_cacheTM.insert(make_pair(sp,make_pair(tpc,ac)));
 
     //tp is not found
-    std::auto_ptr<TargetPhrase> targetPhrase(new TargetPhrase(tp));
+    std::unique_ptr<TargetPhrase> targetPhrase(new TargetPhrase(tp));
     targetPhrase->GetScoreBreakdown().Assign(this, GetPreComputedScores(age));
     if (!waString.empty()) targetPhrase->SetAlignmentInfo(waString);
 
