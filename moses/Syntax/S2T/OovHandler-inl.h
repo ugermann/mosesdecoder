@@ -64,7 +64,7 @@ OovHandler<RuleTrie>::SynthesizeTargetLhs(const std::string &lhsStr)
 }
 
 template<typename RuleTrie>
-TargetPhrase *OovHandler<RuleTrie>::SynthesizeTargetPhrase(
+  TargetPhrase *OovHandler<RuleTrie>::SynthesizeTargetPhrase(
   const Word &oov, const Phrase &srcPhrase, const Word &targetLhs, float prob)
 {
   const StaticData &SD = StaticData::Instance();
@@ -72,7 +72,8 @@ TargetPhrase *OovHandler<RuleTrie>::SynthesizeTargetPhrase(
   const UnknownWordPenaltyProducer &unknownWordPenaltyProducer =
     UnknownWordPenaltyProducer::Instance();
 
-  TargetPhrase *targetPhrase = new TargetPhrase();
+  ttasksptr ttask = TranslationTask::Current();
+  TargetPhrase *targetPhrase = new TargetPhrase(ttask);
   Word &targetWord = targetPhrase->AddWord();
   targetWord.CreateUnknownWord(oov);
 

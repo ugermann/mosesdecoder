@@ -8,6 +8,7 @@
 #include "moses/Syntax/RuleTableFF.h"
 #include "moses/TargetPhrase.h"
 #include "moses/Word.h"
+#include "moses/TranslationTask.h"
 
 #include "RuleTrieCreator.h"
 
