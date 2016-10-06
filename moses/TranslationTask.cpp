@@ -175,21 +175,10 @@ interpret_dlt()
 #endif
 }
 
-// TranslationTask const*
-// TranslationTask::
-// current() {
-// #ifdef WITH_THREADS
-//   return s_current.get();
-// #else
-//   return NULL;
-// #endif
-// }
 
 void TranslationTask::Run()
 {
-// #ifdef WITH_THREADS
-//   s_current.reset(this);
-// #endif
+  s_current_task.reset(new ttasksptr(m_self.lock()));
   UTIL_THROW_IF2(!m_source || !m_ioWrapper,
                  "Base Instances of TranslationTask must be initialized with"
                  << " input and iowrapper.");
@@ -285,10 +274,7 @@ void TranslationTask::Run()
   IFVERBOSE(2) {
     PrintUserTime("Sentence Decoding Time:");
   }
-
-// #ifdef WITH_THREADS
-//   s_current.release();
-// #endif
+  s_current_task.reset();
 }
 
 }

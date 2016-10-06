@@ -10,6 +10,10 @@
 #include "moses/ChartManager.h"
 #include "moses/ContextScope.h"
 
+#include "moses/Syntax/F2S/Manager.h"
+#include "moses/Syntax/S2T/Manager.h"
+#include "moses/Syntax/T2S/Manager.h"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -18,6 +22,9 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/tss.hpp>
+#else
+#include <boost/scoped_ptr.hpp>
+#include <ctime>
 #endif
 
 namespace Moses
@@ -41,13 +48,15 @@ class TranslationTask : public Moses::Task
     return *this;
   }
 protected:
+#ifdef WITH_THREADS
+  static boost::thread_specific_ptr<ttasksptr> s_current_task;
+#else
+  static boost::scoped_ptr<ttasksptr> s_current_task;
+#endif
+
   AllOptions::ptr m_options;
   boost::weak_ptr<TranslationTask> m_self; // weak ptr to myself
   boost::shared_ptr<ContextScope> m_scope; // sores local info
-// #ifdef WITH_THREADS
-//   static boost::thread_specific_ptr<TranslationTask> s_current;
-// #endif
-
   // pointer to ContextScope, which stores context-specific information
   TranslationTask() { } ;
   TranslationTask(boost::shared_ptr<Moses::InputType> const& source,
@@ -133,16 +142,19 @@ public:
 
   AllOptions::ptr const& options() const;
 
-  static TranslationTask const* current();
+  static ttasksptr const& Current() {
+    UTIL_THROW_IF2(!m_current_task, 
+                   "Current task is not set! " << "It should be set at the " <<
+                   "beginning of Translationtask::Run() or the local " <<
+                   "override of derived functions.");
+    return *m_current_task;
+  }
   
 protected:
   boost::shared_ptr<Moses::InputType> m_source;
   boost::shared_ptr<Moses::IOWrapper> m_ioWrapper;
 
   void interpret_dlt();
-
-
-
 };
 
 

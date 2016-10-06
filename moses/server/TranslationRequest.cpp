@@ -65,9 +65,7 @@ void
 TranslationRequest::
 Run()
 {
-// #ifdef WITH_THREADS
-//   s_current.reset(this);
-// #endif
+  s_current_task.reset(new ttasksptr(m_self.lock()));
   typedef std::map<std::string,xmlrpc_c::value> param_t;
   param_t const& params = m_paramList.getStruct(0);
   parse_request(params);
@@ -76,10 +74,7 @@ Run()
   param_t::const_iterator si = params.find("context-weights");
   if (si != params.end()) SetContextWeights(*m_scope, si->second);
   
-  si = params.find("lm-interpolation-weights");
-  if (si != params.end()) SetLmInterpolationWeights(*m_scope, si->second);
- 
- if (is_syntax(m_options->search.algo))
+  if (is_syntax(m_options->search.algo))
     run_chart_decoder();
   else
     run_phrase_decoder();
@@ -89,10 +84,7 @@ Run()
     m_done = true;
   }
   m_cond.notify_one();
-
-// #ifdef WITH_THREADS
-//   s_current.release();
-// #endif
+  s_current_task.reset();
 }
 
 /// add phrase alignment information from a Hypothesis
