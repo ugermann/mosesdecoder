@@ -10,9 +10,9 @@
 #include "moses/ChartManager.h"
 #include "moses/ContextScope.h"
 
-#include "moses/Syntax/F2S/Manager.h"
-#include "moses/Syntax/S2T/Manager.h"
-#include "moses/Syntax/T2S/Manager.h"
+// #include "moses/Syntax/F2S/Manager.h"
+// #include "moses/Syntax/S2T/Manager.h"
+// #include "moses/Syntax/T2S/Manager.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -142,12 +142,13 @@ public:
 
   AllOptions::ptr const& options() const;
 
+  
   static ttasksptr const& Current() {
-    UTIL_THROW_IF2(!m_current_task, 
+    UTIL_THROW_IF2(s_current_task.get() == NULL, 
                    "Current task is not set! " << "It should be set at the " <<
                    "beginning of Translationtask::Run() or the local " <<
                    "override of derived functions.");
-    return *m_current_task;
+    return *s_current_task;
   }
   
 protected:
