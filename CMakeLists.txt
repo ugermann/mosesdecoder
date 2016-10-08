@@ -26,9 +26,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 include(cmake/KenLMFunctions.cmake)
 
 
-set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost REQUIRED COMPONENTS
         system
         thread
@@ -47,8 +47,7 @@ if (USE_IRSTLM)
 endif (USE_IRSTLM)
 
 add_definitions(-DHAVE_ZLIB=1)
-#add_definitions(-DMAX_NUM_FACTORS=4 -DKENLM_MAX_ORDER=6 -DWITH_THREADS -DBOOST_TEST_DYN_LINK -DPT_UG)
-add_definitions(-DMAX_NUM_FACTORS=4 -DKENLM_MAX_ORDER=6 -DWITH_THREADS -DPT_UG)
+add_definitions(-DMAX_NUM_FACTORS=4 -DKENLM_MAX_ORDER=6 -DWITH_THREADS -DBOOST_TEST_DYN_LINK -DPT_UG)
 # note: MOSES_VERSION_ID is defined in moses/CMakeLists.txt
 
 # "use TRACE_ENABLE to turn off output of any debugging info" (moses/Util.h)
@@ -83,19 +82,15 @@ set(MOSES_SRC
 add_subdirectory(moses)
 
 
-add_library(moses STATIC ${MOSES_SRC} $<TARGET_OBJECTS:moses_moses> $<TARGET_OBJECTS:moses_tm_ug> $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_util>)
+add_library(moses SHARED ${MOSES_SRC} $<TARGET_OBJECTS:moses_moses> $<TARGET_OBJECTS:moses_tm_ug> $<TARGET_OBJECTS:kenlm> $<TARGET_OBJECTS:kenlm_util>)
 target_link_libraries(moses ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} pthread)
 
 if (USE_IRSTLM)
     target_link_libraries(moses ${IRSTLM_LIBRARIES})
 endif (USE_IRSTLM)
 
-SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-SET(BUILD_SHARED_LIBRARIES OFF)
-SET(CMAKE_EXE_LINKER_FLAGS "-static")
-
 add_executable(moses-main moses-cmd/Main.cpp)
-target_link_libraries(moses-main moses ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES})
+target_link_libraries(moses-main ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES} moses)
 link_directories(${mosesdecoder_BINARY_DIR}/moses)  # link against libmoses.so
 
 # Mert

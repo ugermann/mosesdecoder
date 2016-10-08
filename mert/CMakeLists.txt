@@ -53,9 +53,9 @@ set(MERT_SRC
         PermutationScorer.cpp
         StatisticsBasedScorer.cpp)
 
-set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost REQUIRED COMPONENTS
         system
         thread
@@ -68,7 +68,7 @@ find_package(ZLIB REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
 
-add_library(mertc STATIC ${MERT_SRC} ../moses/ThreadPool.cpp $<TARGET_OBJECTS:kenlm_util>)
+add_library(mertc SHARED ${MERT_SRC} ../moses/ThreadPool.cpp $<TARGET_OBJECTS:kenlm_util>)
 target_link_libraries(mertc ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} pthread)
 
 set(MERT_EXECUTABLES evaluator extractor kbmira mert pro)
