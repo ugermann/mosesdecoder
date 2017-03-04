@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# compute Bleu scores with confidence intervals via boostrap resampling
+# compare two candidate documents with respect to a reference document;
+# list ngrams and how often they match
 # written by Ulrich Germann
 #
 # This file is part of moses.  Its use is licensed under the GNU Lesser General
@@ -168,7 +169,8 @@ if __name__ == "__main__":
         else:
             for i in xrange(1,len(v)):
                 if v[i] != v[i-1]:
-                    print abs(v[i]-v[i-1]), v, " ".join(k)
+                    # print abs(v[i]-v[i-1]), v, " ".join(k)
+                    print (v[i]-v[i-1]), v, " ".join(k)
                     break
                 pass
             pass
